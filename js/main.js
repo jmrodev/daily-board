@@ -1,6 +1,7 @@
 // js/main.js - Orquestador y punto de entrada modular
 import { state } from "./state.js";
-import { loadKanban, handleDrop } from "./tabs/kanban.js";
+import { loadKanban, renderKanban } from "./tabs/kanban/kanban.js";
+import { handleDrop } from "./tabs/kanban/drag.js";
 import { loadDocs } from "./tabs/docs.js";
 import { loadDailies } from "./tabs/dailies.js";
 import { loadSprints } from "./tabs/sprints.js";
@@ -55,7 +56,7 @@ function setupNavigation() {
       } else {
         state.filters.assignee = val;
       }
-      import("./tabs/kanban.js").then(m => m.renderKanban());
+      renderKanban();
     });
   }
 
@@ -63,7 +64,7 @@ function setupNavigation() {
   if (inputSearch) {
     inputSearch.addEventListener("input", (e) => {
       state.filters.search = e.target.value.trim();
-      import("./tabs/kanban.js").then(m => m.renderKanban());
+      renderKanban();
     });
   }
 }

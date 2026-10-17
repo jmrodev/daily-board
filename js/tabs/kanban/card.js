@@ -1,6 +1,6 @@
-// js/tabs/kanban-card.js - Componente puro de renderizado de tarjetas Kanban
-import { state, COLUMN_LABELS, escapeHtml } from "../state.js";
-import { onDragStart, onDragEnd } from "./kanban-drag.js";
+// js/tabs/kanban/card.js - Componente puro de renderizado de tarjetas Kanban
+import { state, COLUMN_LABELS, escapeHtml } from "../../state.js";
+import { onDragStart, onDragEnd } from "./drag.js";
 
 export function createKanbanCard(issue, colKey) {
   // Buscar Pull Requests vinculados que mencionen #numero

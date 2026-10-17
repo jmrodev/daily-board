@@ -1,9 +1,8 @@
-// js/tabs/kanban.js - Orquestador desacoplado del Tablero Kanban
-import { state, COLUMN_LABELS, escapeHtml } from "../state.js";
-import { githubRequest } from "../api.js";
-import { showToast } from "../toast.js";
-import { createKanbanCard } from "./kanban-card.js";
-export { handleDrop, onDragStart, onDragEnd } from "./kanban-drag.js";
+// js/tabs/kanban/kanban.js - Orquestador desacoplado del Tablero Kanban
+import { state, COLUMN_LABELS, escapeHtml } from "../../state.js";
+import { githubRequest } from "../../api.js";
+import { showToast } from "../../toast.js";
+import { createKanbanCard } from "./card.js";
 
 export function classifyColumn(issue) {
   // 1. Si está cerrado en GitHub, es Done (PR fusionado o completado)

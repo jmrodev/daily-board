@@ -1,7 +1,7 @@
-// js/tabs/kanban-drag.js - Drag and drop, reglas de negocio y transiciones de estado
-import { state, COLUMN_LABELS } from "../state.js";
-import { githubRequest } from "../api.js";
-import { showToast } from "../toast.js";
+// js/tabs/kanban/drag.js - Drag and drop, reglas de negocio y transiciones de estado
+import { state, COLUMN_LABELS } from "../../state.js";
+import { githubRequest } from "../../api.js";
+import { showToast } from "../../toast.js";
 import { classifyColumn, renderKanban, loadKanban } from "./kanban.js";
 
 let draggedCard = null;
