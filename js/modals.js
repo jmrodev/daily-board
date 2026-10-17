@@ -139,7 +139,7 @@ ${qBloqueo}
     try {
       let sha = null;
       try {
-        const fileData = await githubRequest(`/contents/${path}`);
+        const fileData = await githubRequest(`/contents/${path}?ref=gh-pages`);
         sha = fileData.sha;
       } catch {
         // No existe todavía, se crea limpio
@@ -149,7 +149,8 @@ ${qBloqueo}
 
       const bodyPayload = {
         message: `daily: reporte individual de ${author} (${dateStr})`,
-        content: b64Content
+        content: b64Content,
+        branch: "gh-pages"
       };
       if (sha) bodyPayload.sha = sha;
 

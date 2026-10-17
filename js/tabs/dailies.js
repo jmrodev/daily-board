@@ -9,7 +9,7 @@ export async function loadDailies() {
   treeEl.innerHTML = `<li class="loading">Buscando fechas en /dailies...</li>`;
 
   try {
-    const items = await githubRequest("/contents/dailies");
+    const items = await githubRequest("/contents/dailies?ref=gh-pages");
     // Puede haber carpetas por fecha (YYYY-MM-DD) o archivos legacy (.md)
     const dateFolders = items.filter(item => item.type === "dir" || (item.type === "file" && item.name.endsWith(".md")));
 

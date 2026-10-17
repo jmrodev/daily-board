@@ -2,13 +2,336 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=board/">
-  <title>Redireccionando a Project Hub...</title>
-  <script>
-    window.location.href = "board/";
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Hub · GitHub Native</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Markdown parser liviano y seguro via CDN (sin build step) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
-<body style="background: #0d1117; color: #c9d1d9; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh;">
-  <p>Cargando Project Hub... <a href="board/" style="color: #58a6ff;">Hacé click aquí si no redirecciona</a>.</p>
+<body>
+
+  <!-- 1. Header Principal: Brand a la izquierda, Acciones & Login a la derecha -->
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="icon">🚀</span>
+      <div>
+        <h1>Project Hub</h1>
+        <small id="repoSubtitle" class="repo-subtitle">jmrodev/daily-board</small>
+      </div>
+    </div>
+
+    <!-- Estado de Conexión & Acciones (Arriba a la Derecha) -->
+    <div class="header-actions">
+      <button id="btnRefresh" class="btn secondary">🔄 Refrescar</button>
+      <button id="btnNuevaAccion" class="btn primary">➕ Nueva Tarea</button>
+      
+      <!-- Botón clásico Iniciar Sesión / Perfil de Usuario -->
+      <button id="authBtn" class="btn auth-btn" title="Iniciar sesión con GitHub">
+        <span class="auth-dot" id="authDot"></span>
+        <span id="authLabel">Iniciar sesión</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. Barra de Solapas (Debajo del Header, estilo pestañas clásicas de navegador) -->
+  <nav class="sub-nav-bar">
+    <div class="nav-tabs-container">
+      <button class="nav-tab active" data-tab="kanban">📌 Tablero Kanban</button>
+      <button class="nav-tab" data-tab="dailies">☕ Daily Scrum</button>
+      <button class="nav-tab" data-tab="docs">📖 Docs / Wiki</button>
+      <button class="nav-tab" data-tab="sprints">🎯 Sprints / Milestones</button>
+      <button class="nav-tab" data-tab="activity">⚡ Actividad</button>
+    </div>
+  </nav>
+
+  <!-- SOLAPA 1: TABLERO KANBAN -->
+  <section id="tab-kanban" class="tab-content active">
+    <!-- Barra de Filtros del Tablero -->
+    <div class="kanban-toolbar">
+      <div class="filter-group">
+        <select id="selectFilterUser" class="btn-select-filter" title="Filtrar por responsable">
+          <option value="all">👥 Todos los miembros</option>
+          <option value="mine">👤 Solo mis tareas</option>
+          <option value="unassigned">⚪ Sin asignar</option>
+        </select>
+      </div>
+      <div class="search-wrapper">
+        <input type="text" id="inputSearchTasks" placeholder="🔍 Buscar por título o número...">
+      </div>
+    </div>
+
+    <div class="board-container">
+      <div class="kanban-column" id="col-todo">
+        <div class="col-header todo">
+          <h2>📌 Por Hacer</h2>
+          <span class="count" id="count-todo">0</span>
+        </div>
+        <div class="cards-list" id="list-todo"></div>
+      </div>
+
+      <div class="kanban-column" id="col-progress">
+        <div class="col-header progress">
+          <h2>⚡ En Curso / PR Pedido</h2>
+          <span class="count" id="count-progress">0</span>
+        </div>
+        <div class="cards-list" id="list-progress"></div>
+      </div>
+
+      <div class="kanban-column" id="col-blocked">
+        <div class="col-header blocked">
+          <h2>🚧 Bloqueado</h2>
+          <span class="count" id="count-blocked">0</span>
+        </div>
+        <div class="cards-list" id="list-blocked"></div>
+      </div>
+
+      <div class="kanban-column" id="col-done" title="Columna protegida: solo se mueve al fusionar un PR en GitHub">
+        <div class="col-header done">
+          <h2>🎉 Listo / PR Aceptado 🔒</h2>
+          <span class="count" id="count-done">0</span>
+        </div>
+        <div class="cards-list" id="list-done"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOLAPA 2: DAILY SCRUM (/dailies) -->
+  <section id="tab-dailies" class="tab-content">
+    <div class="docs-layout">
+      <aside class="docs-sidebar">
+        <div class="sidebar-head">
+          <h3>Historial de Dailies</h3>
+        </div>
+        <ul id="dailiesDatesList" class="docs-tree dailies-tree">
+          <li class="loading">Cargando fechas de /dailies...</li>
+        </ul>
+      </aside>
+      <main class="docs-viewer">
+        <div class="docs-header">
+          <h2 id="currentDailyTitle">Seleccioná una fecha</h2>
+          <div id="dailyActions" style="display: none;">
+            <a id="githubDailyLink" href="#" target="_blank" rel="noopener" class="btn small secondary">Ver en GitHub ↗</a>
+          </div>
+        </div>
+        <article id="dailyContent" class="markdown-body">
+          <p class="placeholder-text">Elegí una fecha del historial para ver el estado del equipo.</p>
+        </article>
+      </main>
+    </div>
+  </section>
+
+  <!-- SOLAPA 3: DOCS / WIKI (/docs) -->
+  <section id="tab-docs" class="tab-content">
+    <div class="docs-layout">
+      <aside class="docs-sidebar">
+        <div class="sidebar-head">
+          <h3>Archivos en /docs</h3>
+        </div>
+        <ul id="docsFileList" class="docs-tree">
+          <li class="loading">Cargando guías...</li>
+        </ul>
+      </aside>
+      <main class="docs-viewer">
+        <div class="docs-header">
+          <h2 id="currentDocTitle">Seleccioná un documento</h2>
+          <div id="docActions" style="display: none;">
+            <a id="githubDocLink" href="#" target="_blank" rel="noopener" class="btn small secondary">Ver en GitHub ↗</a>
+          </div>
+        </div>
+        <article id="docContent" class="markdown-body">
+          <p class="placeholder-text">Elegí un archivo de la columna izquierda para visualizarlo.</p>
+        </article>
+      </main>
+    </div>
+  </section>
+
+  <!-- SOLAPA 4: SPRINTS / MILESTONES -->
+  <section id="tab-sprints" class="tab-content">
+    <div class="sprints-container">
+      <div class="sprints-head">
+        <h2>Hitos y Sprints del Equipo</h2>
+        <p>Progreso automático según el cierre de los issues en GitHub.</p>
+      </div>
+      <div id="sprintsList" class="sprints-grid">
+        <div class="loading">Cargando hitos de GitHub...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOLAPA 5: ACTIVIDAD -->
+  <section id="tab-activity" class="tab-content">
+    <div class="activity-container">
+      <div class="activity-head">
+        <h2>Historial Reciente de Commits</h2>
+        <p>Últimos cambios subidos a la rama principal de GitHub.</p>
+      </div>
+      <div id="activityList" class="activity-timeline">
+        <div class="loading">Cargando actividad...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODAL: INICIAR SESIÓN (GUIADO Y RÁPIDO) -->
+  <dialog id="authModal" class="modal">
+    <form id="authModalForm" method="dialog">
+      <h3>Iniciar Sesión en Project Hub</h3>
+      <p class="modal-desc">
+        Para <strong>crear tareas, mover tarjetas o registrar tu Daily</strong>, GitHub necesita tu Personal Access Token (PAT).
+      </p>
+
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 12px 0;">
+        <span style="font-size: 0.85rem; display: block; margin-bottom: 8px;">
+          👉 <strong>¿No tenés un token todavía?</strong> Crealo en 10 segundos:
+        </span>
+        <a href="https://github.com/settings/tokens/new?description=Project+Hub&scopes=repo" target="_blank" rel="noopener" class="btn primary small" style="display: inline-block;">
+          Generar mi Token en GitHub (1-Click) ↗
+        </a>
+        <small style="display: block; color: var(--text-muted); margin-top: 6px; font-size: 0.75rem;">
+          Se abre con los permisos de <code>repo</code> ya seleccionados. Hacé click abajo en "Generate token" y pegalo aquí.
+        </small>
+      </div>
+
+      <label>
+        Pegá tu Personal Access Token (PAT):
+        <input type="password" id="cfgUserToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" required style="width: 100%;">
+        <small style="color: var(--text-muted);">Queda guardado únicamente en tu navegador (<code>localStorage</code>).</small>
+      </label>
+
+      <label style="margin-top: 10px;">
+        Repositorio de la clase:
+        <input type="text" id="cfgRepoSlug" value="jmrodev/daily-board" required style="width: 100%;">
+      </label>
+
+      <div class="modal-buttons">
+        <button type="button" class="btn secondary" onclick="document.getElementById('authModal').close()">Cancelar</button>
+        <button type="button" id="btnDisconnectAuth" class="btn danger">Cerrar Sesión</button>
+        <button type="submit" class="btn primary">Conectar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: REGISTRAR MI DAILY -->
+  <dialog id="newDailyModal" class="modal modern-modal">
+    <form id="newDailyForm" method="dialog">
+      <div class="modal-header">
+        <div>
+          <h3>☕ Registro de Daily Scrum</h3>
+          <p class="modal-subtitle">Sincronizá tu avance diario con el equipo en GitHub</p>
+        </div>
+        <button type="button" class="btn-close" onclick="document.getElementById('newDailyModal').close()">✕</button>
+      </div>
+
+      <div class="daily-meta-row">
+        <label class="compact-label">
+          <span>📅 Fecha:</span>
+          <input type="date" id="dailyDateInput" required>
+        </label>
+      </div>
+
+      <div class="daily-question-card done-card">
+        <div class="question-header">
+          <span class="q-icon">✅</span>
+          <label for="dailyDone">¿Qué lograste ayer / recientemente?</label>
+        </div>
+        <textarea id="dailyDone" rows="3" required placeholder="Ej: Implementé la autenticación, corregí el bug del header..."></textarea>
+      </div>
+
+      <div class="daily-question-card plan-card">
+        <div class="question-header">
+          <span class="q-icon">🎯</span>
+          <label for="dailyPlan">¿Qué tenés planeado para hoy?</label>
+        </div>
+        <textarea id="dailyPlan" rows="3" required placeholder="Ej: Voy a crear los tests unitarios y conectar la API con el tablero..."></textarea>
+      </div>
+
+      <div class="daily-question-card blocker-card">
+        <div class="question-header">
+          <span class="q-icon">🚧</span>
+          <label for="dailyBlocker">¿Tenés algún bloqueo o impedimento?</label>
+        </div>
+        <input type="text" id="dailyBlocker" placeholder="Ej: Ninguno (o: esperando que se apruebe el PR #4)">
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn secondary" onclick="document.getElementById('newDailyModal').close()">Cancelar</button>
+        <button type="submit" class="btn primary" id="btnSubmitDaily">
+          💾 Publicar Daily en /dailies
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: COMENTARIOS Y DISCUSIÓN DEL ISSUE -->
+  <dialog id="issueCommentsModal" class="modal modern-modal">
+    <div class="modal-header">
+      <div>
+        <h3 id="commentsModalTitle">💬 Discusión del Issue</h3>
+        <p class="modal-subtitle" id="commentsModalSubtitle">Comentarios sincronizados con GitHub</p>
+      </div>
+      <button type="button" class="btn-close" onclick="document.getElementById('issueCommentsModal').close()">✕</button>
+    </div>
+
+    <div id="commentsTimeline" class="comments-timeline">
+      <p class="loading">Cargando comentarios...</p>
+    </div>
+
+    <form id="newCommentForm" class="new-comment-form">
+      <input type="hidden" id="commentIssueNumber">
+      <textarea id="commentBodyInput" rows="3" required placeholder="Escribí un comentario para el equipo (soporta Markdown)..."></textarea>
+      <div class="modal-footer" style="padding-top: 10px; margin-top: 10px;">
+        <button type="button" class="btn secondary" onclick="document.getElementById('issueCommentsModal').close()">Cerrar</button>
+        <button type="submit" class="btn primary" id="btnSendComment">💬 Enviar a GitHub</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: NUEVA TAREA -->
+  <dialog id="newIssueModal" class="modal">
+    <form id="newIssueForm" method="dialog">
+      <h3>Crear Nueva Tarea en GitHub</h3>
+      <label>
+        Título del Issue:
+        <input type="text" id="newTitle" required placeholder="ej: Crear endpoint de login">
+      </label>
+      <label>
+        Descripción (Markdown opcional):
+        <textarea id="newBody" rows="4" placeholder="Qué se va a hacer, criterios de aceptación..."></textarea>
+      </label>
+      <label>
+        Columna inicial:
+        <select id="newColumn">
+          <option value="todo">📌 Por Hacer</option>
+          <option value="progress">⚡ En Curso</option>
+          <option value="blocked">🚧 Bloqueado</option>
+        </select>
+      </label>
+      <div class="modal-buttons">
+        <button type="button" class="btn secondary" onclick="document.getElementById('newIssueModal').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Crear en GitHub</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: NUEVO DOC -->
+  <dialog id="newDocModal" class="modal">
+    <form id="newDocForm" method="dialog">
+      <h3>Crear Nuevo Documento en /docs</h3>
+      <label>
+        Nombre del archivo (con .md):
+        <input type="text" id="newDocFilename" required placeholder="ej: api-spec.md">
+      </label>
+      <label>
+        Contenido inicial (Markdown):
+        <textarea id="newDocContent" rows="6" required placeholder="# Título del Documento&#10;&#10;Contenido..."></textarea>
+      </label>
+      <div class="modal-buttons">
+        <button type="button" class="btn secondary" onclick="document.getElementById('newDocModal').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Guardar en GitHub (/docs)</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Carga del Módulo Principal -->
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
