@@ -31,7 +31,8 @@ const savedConfig = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 export const state = {
   config: {
     repoSlug: savedConfig.repoSlug || detectedSlug,
-    token: savedConfig.token || ""
+    token: savedConfig.token || "",
+    isCustomRepo: Boolean(savedConfig.repoSlug)
   },
   user: JSON.parse(localStorage.getItem(USER_KEY) || "null"),
   currentTab: "kanban",
@@ -47,6 +48,29 @@ export const state = {
   }
 };
 
+export async function autoResolveUpstreamRepo() {
+  // Si el usuario ya configuró un repo manualmente, respetamos su decisión
+  if (state.config.isCustomRepo) return;
+
+  const currentSlug = state.config.repoSlug;
+  const headers = { "Accept": "application/vnd.github+json" };
+  if (state.config.token) headers["Authorization"] = `Bearer ${state.config.token}`;
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${currentSlug}`, { headers });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.fork && data.parent && data.parent.full_name) {
+      console.log(`[AutoResolve] Fork detectado: ${currentSlug} -> Upstream: ${data.parent.full_name}`);
+      state.config.repoSlug = data.parent.full_name;
+      // Guardar para que quede cacheado
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.config));
+    }
+  } catch (err) {
+    console.warn("[AutoResolve] No se pudo verificar fork:", err);
+  }
+}
+
 export const COLUMN_LABELS = {
   todo: "status:todo",
   progress: "status:in-progress",
@@ -55,7 +79,8 @@ export const COLUMN_LABELS = {
 };
 
 export function saveConfig(repoSlug, token, username, avatarUrl) {
-  state.config.repoSlug = repoSlug || defaultConfig.repoSlug;
+  state.config.repoSlug = repoSlug || detectedSlug;
+  state.config.isCustomRepo = true;
   if (token !== undefined) state.config.token = token;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.config));
 

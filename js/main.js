@@ -36,8 +36,14 @@ document.addEventListener("DOMContentLoaded", () => {
   setupChannelComposer();
   initModals(handleAuthChanged);
 
-  // Cargar solapa inicial (Canales / Novedades como página principal)
-  switchTab("channels");
+  // Intentar resolver automáticamente si el repo actual es un fork para apuntar al upstream
+  import("./state.js").then(async ({ autoResolveUpstreamRepo }) => {
+    await autoResolveUpstreamRepo();
+    renderAuthBadge();
+    switchTab("channels");
+  }).catch(() => {
+    switchTab("channels");
+  });
 
   // Polling pasivo cada 60 segundos (solo si la ventana del navegador está visible)
   setInterval(() => {
@@ -331,7 +337,19 @@ function setupDragAndDrop() {
 }
 
 function renderAuthBadge() {
-  document.getElementById("repoSubtitle").textContent = state.config.repoSlug;
+  const subtitle = document.getElementById("repoSubtitle");
+  if (subtitle) {
+    subtitle.textContent = state.config.repoSlug;
+    subtitle.title = "Click para cambiar de repositorio o conectar token";
+    if (!subtitle.dataset.clickBound) {
+      subtitle.dataset.clickBound = "true";
+      subtitle.style.cursor = "pointer";
+      subtitle.addEventListener("click", () => {
+        import("./modals.js").then(m => m.openAuthModal());
+      });
+    }
+  }
+
   const btn = document.getElementById("authBtn");
   const dot = document.getElementById("authDot");
   const label = document.getElementById("authLabel");
