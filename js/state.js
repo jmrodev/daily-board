@@ -2,8 +2,23 @@
 const STORAGE_KEY = "classroom_hub_config";
 const USER_KEY = "classroom_hub_user";
 
+function detectCurrentRepoSlug() {
+  if (typeof window !== "undefined" && window.location) {
+    const host = window.location.hostname;
+    // Si corre en username.github.io/reponame/
+    if (host.endsWith(".github.io")) {
+      const owner = host.split(".")[0];
+      const repo = window.location.pathname.split("/").filter(Boolean)[0];
+      if (owner && repo) {
+        return `${owner}/${repo}`;
+      }
+    }
+  }
+  return "jmrodev/daily-board";
+}
+
 const defaultConfig = {
-  repoSlug: "jmrodev/daily-board",
+  repoSlug: detectCurrentRepoSlug(),
   token: ""
 };
 
