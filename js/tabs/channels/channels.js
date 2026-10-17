@@ -69,9 +69,9 @@ async function renderNovedadesDashboard() {
   const descEl = document.getElementById("currentChannelDesc");
   const feedEl = document.getElementById("channelMessagesFeed");
 
-  if (titleEl) titleEl.textContent = "🔥 Novedades y Últimos Mensajes";
-  if (descEl) descEl.textContent = "Resumen obligatorio para que todo el equipo esté al día con los avisos recientes";
-  if (feedEl) feedEl.innerHTML = `<p class="loading">Recopilando últimas novedades de todos los canales...</p>`;
+  if (titleEl) titleEl.textContent = "🔥 novedades";
+  if (descEl) descEl.textContent = "";
+  if (feedEl) feedEl.innerHTML = `<p class="loading">Cargando novedades...</p>`;
 
   const chatChannels = DEFAULT_CHANNELS.filter(c => !c.isSummary);
 
@@ -104,13 +104,7 @@ async function renderNovedadesDashboard() {
       })
     );
 
-    let html = `
-      <div class="novedades-banner">
-        <h3>📌 Tablero de Lectura Obligatoria</h3>
-        <p>Acá tenés el último mensaje de cada canal para no perderte nada importante. Hacé click en cualquier tarjeta para saltar al canal completo.</p>
-      </div>
-      <div class="novedades-grid">
-    `;
+    let html = `<div class="novedades-grid">`;
 
     channelSummaries.forEach(ch => {
       if (!ch.latestMessage) {
