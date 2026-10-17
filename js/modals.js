@@ -89,7 +89,7 @@ export function initModals(onAuthChanged) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: `docs: agregar ${filename} desde Classroom Hub`,
+          message: `docs: agregar ${filename} desde Project Hub`,
           content: b64Content
         })
       });
