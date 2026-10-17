@@ -33,34 +33,35 @@ export async function loadKanban() {
 
     state.issues = issues;
     state.pullRequests = pulls;
+    state.prReviews = state.prReviews || {};
 
-    // Obtener reviews de los PRs abiertos en paralelo (para saber cuántas aprobaciones tienen)
-    state.prReviews = {};
-    const openPulls = (pulls || []).filter(pr => pr.state === "open");
-    await Promise.all(
-      openPulls.map(async pr => {
-        try {
-          const reviews = await githubRequest(`/pulls/${pr.number}/reviews`);
-          // Solo revisiones APPROVED únicas por usuario (el último estado del revisor)
-          const latestByUser = {};
-          reviews.forEach(r => {
-            if (r.user && r.user.login) {
-              latestByUser[r.user.login] = r.state;
-            }
-          });
-          const approvedCount = Object.values(latestByUser).filter(st => st === "APPROVED").length;
-          state.prReviews[pr.number] = {
-            approvedCount,
-            totalRequired: 2
-          };
-        } catch {
-          state.prReviews[pr.number] = { approvedCount: 0, totalRequired: 2 };
-        }
-      })
-    );
-
+    // Renderizado inmediato: la UI jamás se traba esperando reviews
     updateAssigneeFilterOptions();
     renderKanban();
+
+    // Obtener reviews de los PRs abiertos progresivamente en segundo plano
+    const openPulls = (pulls || []).filter(pr => pr.state === "open");
+    if (openPulls.length > 0) {
+      Promise.all(
+        openPulls.map(async pr => {
+          try {
+            const reviews = await githubRequest(`/pulls/${pr.number}/reviews`);
+            const latestByUser = {};
+            (reviews || []).forEach(r => {
+              if (r.user && r.user.login) {
+                latestByUser[r.user.login] = r.state;
+              }
+            });
+            const approvedCount = Object.values(latestByUser).filter(st => st === "APPROVED").length;
+            state.prReviews[pr.number] = { approvedCount, totalRequired: 2 };
+          } catch {
+            state.prReviews[pr.number] = { approvedCount: 0, totalRequired: 2 };
+          }
+        })
+      ).then(() => {
+        renderKanban(); // Actualiza solo los badges cuando lleguen las reviews
+      });
+    }
   } catch (err) {
     console.error("Error al cargar Kanban:", err);
   }
