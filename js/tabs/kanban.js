@@ -5,7 +5,17 @@ import { githubRequest } from "../api.js";
 let draggedCard = null;
 
 export function classifyColumn(issue) {
+  // 1. Si está cerrado en GitHub, es Done (PR fusionado o completado)
   if (issue.state === "closed") return "done";
+
+  // 2. Si tiene un Pull Request abierto vinculado, va automáticamente a En Curso
+  const issueRef = `#${issue.number}`;
+  const hasOpenPR = (state.pullRequests || []).some(pr =>
+    pr.state === "open" && ((pr.body || "").includes(issueRef) || (pr.title || "").includes(issueRef))
+  );
+  if (hasOpenPR) return "progress";
+
+  // 3. Revisión por etiquetas estándar
   const labelNames = (issue.labels || []).map(l => (typeof l === "string" ? l : l.name).toLowerCase());
   if (labelNames.includes(COLUMN_LABELS.blocked)) return "blocked";
   if (labelNames.includes(COLUMN_LABELS.progress)) return "progress";
@@ -106,10 +116,11 @@ export function renderKanban() {
 
     const card = document.createElement("div");
     card.className = "task-card";
-    card.draggable = Boolean(state.config.token);
+    // Si la tarjeta ya está en Listo (cerrada), no se arrastra
+    card.draggable = Boolean(state.config.token) && colKey !== "done";
     card.dataset.number = issue.number;
 
-    if (state.config.token) {
+    if (state.config.token && colKey !== "done") {
       card.addEventListener("dragstart", onDragStart);
       card.addEventListener("dragend", onDragEnd);
     }
@@ -119,18 +130,38 @@ export function renderKanban() {
       .map(l => `<span class="label-pill" style="background-color: #${l.color || '30363d'}22; border: 1px solid #${l.color || '30363d'}">${escapeHtml(l.name)}</span>`)
       .join("");
 
-    const prBadgeHtml = linkedPR ? `
-      <a href="${linkedPR.html_url}" target="_blank" rel="noopener" class="pr-badge ${linkedPR.state}" title="Pull Request vinculado: #${linkedPR.number}">
-        🔀 PR #${linkedPR.number} (${linkedPR.state === 'open' ? 'En revisión' : 'Merged'})
-      </a>
-    ` : "";
+    let prBadgeHtml = "";
+    if (linkedPR) {
+      const isMerged = linkedPR.merged_at || linkedPR.state === "closed";
+      const prStateLabel = isMerged ? "✓ Aceptado / Merged" : "⏳ En revisión";
+      const prClass = isMerged ? "merged" : "open";
+      prBadgeHtml = `
+        <a href="${linkedPR.html_url}" target="_blank" rel="noopener" class="pr-badge ${prClass}" title="Ver Pull Request #${linkedPR.number} en GitHub">
+          🔀 PR #${linkedPR.number} (${prStateLabel})
+        </a>
+      `;
+    }
+
+    // Información de devolución en la columna Listo
+    let acceptedByHtml = "";
+    if (colKey === "done") {
+      if (linkedPR && linkedPR.merged_by) {
+        acceptedByHtml = `<div class="accepted-by-badge">👑 Aceptado por @${escapeHtml(linkedPR.merged_by.login)}</div>`;
+      } else if (issue.closed_by) {
+        acceptedByHtml = `<div class="accepted-by-badge">👑 Aceptado por @${escapeHtml(issue.closed_by.login)}</div>`;
+      } else {
+        acceptedByHtml = `<div class="accepted-by-badge">🎉 Tarea completada</div>`;
+      }
+    }
 
     const isAssignedToMe = state.user && issue.assignee?.login === state.user.username;
     const assigneeText = issue.assignee ? `@${escapeHtml(issue.assignee.login)}` : "Sin asignar";
 
-    const assignBtnHtml = isAssignedToMe
-      ? `<span class="badge-assigned-me">✓ Mía</span>`
-      : `<button class="btn-self-assign" title="Asignarme esta tarea" onclick="event.stopPropagation(); window.selfAssignIssue(${issue.number})">➕ Asignarme</button>`;
+    const assignBtnHtml = (colKey !== "done")
+      ? (isAssignedToMe
+          ? `<span class="badge-assigned-me">✓ Mía</span>`
+          : `<button class="btn-self-assign" title="Asignarme esta tarea" onclick="event.stopPropagation(); window.selfAssignIssue(${issue.number})">➕ Asignarme</button>`)
+      : "";
 
     card.innerHTML = `
       <div class="card-title">
@@ -139,6 +170,7 @@ export function renderKanban() {
         </a>
       </div>
       ${prBadgeHtml}
+      ${acceptedByHtml}
       <div class="card-meta">
         <span class="assignee-tag" title="Responsable de la tarea">
           👤 ${assigneeText}
@@ -177,6 +209,13 @@ function onDragEnd() {
 
 export async function handleDrop(e, targetCol) {
   e.preventDefault();
+
+  // Regla estricta: Nadie puede arrastrar manualmente a Listo
+  if (targetCol === "done") {
+    alert("🔒 La columna 'Listo' está protegida:\nSolo se completa automáticamente cuando el docente o administrador acepta y fusiona el Pull Request en GitHub.");
+    return;
+  }
+
   if (!state.config.token) {
     alert("Para mover tareas en GitHub se requiere un Token con permisos de escritura.");
     return;
@@ -189,15 +228,12 @@ export async function handleDrop(e, targetCol) {
   const currentCol = classifyColumn(issue);
   if (currentCol === targetCol) return;
 
-  // Actualización optimista en memoria
-  if (targetCol === "done") {
-    issue.state = "closed";
-  } else {
-    issue.state = "open";
-    issue.labels = (issue.labels || []).filter(l => {
-      const name = typeof l === "string" ? l : l.name;
-      return !Object.values(COLUMN_LABELS).includes(name);
-    });
+  // Actualización optimista en memoria (solo para todo, progress o blocked)
+  issue.state = "open";
+  issue.labels = (issue.labels || []).filter(l => {
+    const name = typeof l === "string" ? l : l.name;
+    return !Object.values(COLUMN_LABELS).includes(name);
+  });
     if (COLUMN_LABELS[targetCol]) {
       issue.labels.push({ name: COLUMN_LABELS[targetCol], color: "30363d" });
     }
