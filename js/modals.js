@@ -144,6 +144,16 @@ export function initModals(onAuthChanged) {
         body: JSON.stringify(bodyPayload)
       });
 
+      document.getElementById("newDailyModal").close();
+      document.getElementById("dailyDone").value = "";
+      document.getElementById("dailyPlan").value = "";
+      document.getElementById("dailyBlocker").value = "";
+      loadDailies();
+    } catch (err) {
+      alert("Error al registrar daily: " + err.message);
+    }
+  });
+
   // Enviar Nuevo Comentario en el Issue
   const commentForm = document.getElementById("newCommentForm");
   if (commentForm) {
