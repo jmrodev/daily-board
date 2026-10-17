@@ -449,28 +449,50 @@ export function openAuthModal() {
   document.getElementById("authModal").showModal();
 }
 
-export function openNewIssueModal() {
+export async function openNewIssueModal() {
   if (!state.config.token) {
     showToast("Para crear un issue primero iniciá sesión con tu Token de GitHub.", "warning");
     openAuthModal();
     return;
   }
 
-  // Rellenar dinámicamente los Milestones disponibles
+  // Refrescar los milestones abiertos directamente desde GitHub para tener siempre el último estado
+  try {
+    state.milestones = await githubRequest("/milestones?state=open");
+  } catch {
+    // Fallback a los existentes en memoria si falla la red
+  }
+
   const selectMs = document.getElementById("newIssueMilestone");
   if (selectMs) {
     const openSprints = (state.milestones || []).filter(m => m.state === "open");
-    let optionsHtml = `<option value="current">🎯 Sprint en curso (Por defecto)</option>`;
+    let optionsHtml = "";
+
     if (openSprints.length > 0) {
-      optionsHtml += `<optgroup label="Sprints específicos">`;
-      openSprints.forEach(m => {
-        optionsHtml += `<option value="${m.number}">🎯 ${escapeHtml(m.title)}</option>`;
-      });
-      optionsHtml += `</optgroup>`;
+      // El sprint en curso es el primer milestone abierto (o el que tiene due_on más próximo)
+      const currentSprint = openSprints[0];
+      optionsHtml += `<option value="${currentSprint.number}">🎯 ${escapeHtml(currentSprint.title)} (Sprint en curso - Por defecto)</option>`;
+
+      if (openSprints.length > 1) {
+        optionsHtml += `<optgroup label="Otros Sprints abiertos">`;
+        openSprints.slice(1).forEach(m => {
+          optionsHtml += `<option value="${m.number}">🎯 ${escapeHtml(m.title)}</option>`;
+        });
+        optionsHtml += `</optgroup>`;
+      }
+    } else {
+      optionsHtml += `<option value="none">⚪ Sin Sprint / Backlog general (No hay sprints abiertos)</option>`;
     }
+
     optionsHtml += `<option value="none">⚪ Sin Sprint / Backlog general</option>`;
     selectMs.innerHTML = optionsHtml;
-    selectMs.value = "current";
+
+    // Seleccionar por defecto el número del primer sprint abierto si existe
+    if (openSprints.length > 0) {
+      selectMs.value = openSprints[0].number;
+    } else {
+      selectMs.value = "none";
+    }
   }
 
   document.getElementById("newIssueModal").showModal();
