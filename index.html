@@ -10,7 +10,7 @@
 </head>
 <body>
 
-  <!-- Barra Superior -->
+  <!-- 1. Header Principal: Brand a la izquierda, Acciones & Login a la derecha -->
   <header class="app-header">
     <div class="header-brand">
       <span class="icon">🚀</span>
@@ -20,16 +20,7 @@
       </div>
     </div>
 
-    <!-- Navegación por Solapas -->
-    <nav class="nav-tabs">
-      <button class="nav-tab active" data-tab="kanban">📌 Tablero Kanban</button>
-      <button class="nav-tab" data-tab="dailies">☕ Daily Scrum</button>
-      <button class="nav-tab" data-tab="docs">📖 Docs / Wiki</button>
-      <button class="nav-tab" data-tab="sprints">🎯 Sprints / Milestones</button>
-      <button class="nav-tab" data-tab="activity">⚡ Actividad</button>
-    </nav>
-
-    <!-- Estado de Conexión & Acciones -->
+    <!-- Estado de Conexión & Acciones (Arriba a la Derecha) -->
     <div class="header-actions">
       <button id="btnRefresh" class="btn secondary">🔄 Refrescar</button>
       <button id="btnNuevaAccion" class="btn primary">➕ Nueva Tarea</button>
@@ -41,6 +32,17 @@
       </button>
     </div>
   </header>
+
+  <!-- 2. Barra de Solapas (Debajo del Header, estilo pestañas clásicas de navegador) -->
+  <nav class="sub-nav-bar">
+    <div class="nav-tabs-container">
+      <button class="nav-tab active" data-tab="kanban">📌 Tablero Kanban</button>
+      <button class="nav-tab" data-tab="dailies">☕ Daily Scrum</button>
+      <button class="nav-tab" data-tab="docs">📖 Docs / Wiki</button>
+      <button class="nav-tab" data-tab="sprints">🎯 Sprints / Milestones</button>
+      <button class="nav-tab" data-tab="activity">⚡ Actividad</button>
+    </div>
+  </nav>
 
   <!-- SOLAPA 1: TABLERO KANBAN -->
   <section id="tab-kanban" class="tab-content active">

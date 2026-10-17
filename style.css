@@ -26,73 +26,79 @@ body {
   flex-direction: column;
 }
 
-/* Header & Tabs */
+/* 1. Header Principal */
 .app-header {
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 24px;
+  padding: 12px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
 }
 
 .header-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 12px;
 }
 
 .header-brand h1 {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .repo-subtitle {
   color: var(--text-muted);
-  font-size: 0.78rem;
-}
-
-.nav-tabs {
-  display: flex;
-  gap: 6px;
-  background: var(--bg);
-  padding: 4px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  overflow-x: auto;
-}
-
-.nav-tab {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-
-.nav-tab:hover {
-  color: var(--text-main);
-}
-
-.nav-tab.active {
-  background: var(--surface-hover);
-  color: #fff;
-  border: 1px solid var(--border);
+  font-size: 0.8rem;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
-  margin-left: auto;
+}
+
+/* 2. Barra de Solapas / Tabs (Debajo del Header, estilo pestañas nativas) */
+.sub-nav-bar {
+  background: #11151c;
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0 24px;
+}
+
+.nav-tabs-container {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.nav-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  padding: 10px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  border-radius: 6px 6px 0 0;
+}
+
+.nav-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.nav-tab.active {
+  color: #fff;
+  border-bottom: 2px solid var(--accent);
+  background: rgba(88, 166, 255, 0.08);
+  font-weight: 600;
 }
 
 /* Botón de Autenticación clásico arriba a la derecha */
