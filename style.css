@@ -566,6 +566,11 @@ body {
 .commit-author { font-size: 0.78rem; color: var(--text-muted); }
 
 /* Modals Modernos con Elevación Premium */
+dialog.modal:not([open]) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 dialog.modal {
   margin: auto;
   background: #161b22;
