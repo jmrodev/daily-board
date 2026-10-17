@@ -53,8 +53,13 @@ export function initModals(onAuthChanged) {
   });
 
   // Modal Nueva Tarea (Issue)
-  document.getElementById("newIssueForm").addEventListener("submit", async (e) => {
+  const newIssueForm = document.getElementById("newIssueForm");
+  let isCreatingIssue = false;
+
+  newIssueForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (isCreatingIssue) return;
+
     const title = document.getElementById("newTitle").value.trim();
     const body = document.getElementById("newBody").value.trim();
     const column = document.getElementById("newColumn").value;
@@ -76,6 +81,13 @@ export function initModals(onAuthChanged) {
       if (!isNaN(msNum)) payload.milestone = msNum;
     }
 
+    const btnSubmit = document.getElementById("btnSubmitNewIssue");
+    isCreatingIssue = true;
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = "Creando tarea...";
+    }
+
     try {
       const nuevo = await githubRequest("/issues", {
         method: "POST",
@@ -90,14 +102,24 @@ export function initModals(onAuthChanged) {
       showToast(`Tarea #${nuevo.number} creada en GitHub`, "success");
     } catch (err) {
       showToast("Error al crear issue: " + err.message, "error");
+    } finally {
+      isCreatingIssue = false;
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = "📌 Crear Tarea";
+      }
     }
   });
 
   // Modal Nuevo Sprint / Milestone
+  // Modal Nuevo Sprint / Milestone
   const milestoneForm = document.getElementById("newMilestoneForm");
+  let isCreatingMilestone = false;
   if (milestoneForm) {
     milestoneForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (isCreatingMilestone) return;
+
       const title = document.getElementById("newMilestoneTitle").value.trim();
       const dueOn = document.getElementById("newMilestoneDue").value;
       const description = document.getElementById("newMilestoneDesc").value.trim();
@@ -106,6 +128,13 @@ export function initModals(onAuthChanged) {
       if (dueOn) {
         // Formato ISO requerido por GitHub: YYYY-MM-DDTHH:MM:SSZ
         payload.due_on = new Date(`${dueOn}T23:59:59Z`).toISOString();
+      }
+
+      const btnSubmit = document.getElementById("btnSubmitNewMilestone");
+      isCreatingMilestone = true;
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Creando Sprint...";
       }
 
       try {
@@ -123,37 +152,62 @@ export function initModals(onAuthChanged) {
         loadKanban();
       } catch (err) {
         showToast("Error al crear Sprint en GitHub: " + err.message, "error");
+      } finally {
+        isCreatingMilestone = false;
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = "🎯 Crear Sprint";
+        }
       }
     });
   }
 
   // Modal Nuevo Doc (/docs)
-  document.getElementById("newDocForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    let filename = document.getElementById("newDocFilename").value.trim();
-    if (!filename.endsWith(".md")) filename += ".md";
+  const docForm = document.getElementById("newDocForm");
+  let isCreatingDoc = false;
+  if (docForm) {
+    docForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (isCreatingDoc) return;
 
-    const content = document.getElementById("newDocContent").value;
-    const b64Content = btoa(unescape(encodeURIComponent(content)));
+      let filename = document.getElementById("newDocFilename").value.trim();
+      if (!filename.endsWith(".md")) filename += ".md";
 
-    try {
-      await githubRequest(`/contents/docs/${filename}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: `docs: agregar ${filename} desde Project Hub`,
-          content: b64Content
-        })
-      });
-      document.getElementById("newDocModal").close();
-      document.getElementById("newDocFilename").value = "";
-      document.getElementById("newDocContent").value = "";
-      showToast(`Documento ${filename} guardado en /docs`, "success");
-      loadDocs();
-    } catch (err) {
-      showToast("Error al guardar documento en GitHub: " + err.message, "error");
-    }
-  });
+      const content = document.getElementById("newDocContent").value;
+      const b64Content = btoa(unescape(encodeURIComponent(content)));
+
+      const btnSubmit = document.getElementById("btnSubmitNewDoc");
+      isCreatingDoc = true;
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Guardando...";
+      }
+
+      try {
+        await githubRequest(`/contents/docs/${filename}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `docs: agregar ${filename} desde Project Hub`,
+            content: b64Content
+          })
+        });
+        document.getElementById("newDocModal").close();
+        document.getElementById("newDocFilename").value = "";
+        document.getElementById("newDocContent").value = "";
+        showToast(`Documento ${filename} guardado en /docs`, "success");
+        loadDocs();
+      } catch (err) {
+        showToast("Error al guardar documento en GitHub: " + err.message, "error");
+      } finally {
+        isCreatingDoc = false;
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = "💾 Guardar Documento";
+        }
+      }
+    });
+  }
 
   // Modal Registrar Daily (/dailies/YYYY-MM-DD/usuario.md)
   document.getElementById("newDailyForm").addEventListener("submit", async (e) => {
