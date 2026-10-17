@@ -283,8 +283,12 @@ ${qBloqueo}
   // Asistente para insertar enlaces en comentarios
   if (btnCommentLink && commentInput) {
     btnCommentLink.addEventListener("click", () => {
-      const url = prompt("Pegá la URL del enlace (ej: https://...):");
+      let url = prompt("Pegá la URL del enlace (ej: https://... o dominio.com):");
       if (!url) return;
+      url = url.trim();
+      if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url) && !url.startsWith("/") && !url.startsWith("#")) {
+        url = `https://${url}`;
+      }
       const text = prompt("Texto para mostrar del enlace (ej: Ver documentación):", "Enlace") || url;
       const mdLink = `[${text}](${url})`;
       

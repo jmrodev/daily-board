@@ -12,6 +12,24 @@ import { showToast } from "./toast.js";
 
 // Inicialización de la aplicación
 document.addEventListener("DOMContentLoaded", () => {
+  // Configurar marked para que los enlaces externos se abran en nueva pestaña
+  if (window.marked) {
+    const renderer = {
+      link({ href, title, text }) {
+        let cleanHref = href || "";
+        // Si ingresaron un dominio sin protocolo (ej: jmro.dev, www.google.com), auto-completar https://
+        if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(cleanHref) && !cleanHref.startsWith("#") && !cleanHref.startsWith("/")) {
+          if (cleanHref.includes(".") || cleanHref.startsWith("localhost")) {
+            cleanHref = `https://${cleanHref}`;
+          }
+        }
+        const titleAttr = title ? ` title="${title}"` : "";
+        return `<a href="${cleanHref}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`;
+      }
+    };
+    window.marked.use({ renderer });
+  }
+
   renderAuthBadge();
   setupNavigation();
   setupDragAndDrop();
@@ -90,8 +108,13 @@ function setupChannelComposer() {
   // Botón asistente para insertar enlaces Markdown
   if (btnLink && input) {
     btnLink.addEventListener("click", () => {
-      const url = prompt("Pegá la URL del enlace (ej: https://...):");
+      let url = prompt("Pegá la URL del enlace (ej: https://... o dominio.com):");
       if (!url) return;
+      url = url.trim();
+      // Si escribieron un dominio sin protocolo (ej: jmro.dev), anteponer https://
+      if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url) && !url.startsWith("/") && !url.startsWith("#")) {
+        url = `https://${url}`;
+      }
       const text = prompt("Texto para mostrar del enlace (ej: Ver documentación):", "Enlace") || url;
       const mdLink = `[${text}](${url})`;
       
