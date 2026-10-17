@@ -122,9 +122,19 @@
 
         <div class="chat-composer-container" id="chatComposerContainer">
           <form id="channelPostForm" class="chat-composer-form">
-            <textarea id="channelInputBody" rows="2" placeholder="Escribí un mensaje en este canal (soporta Markdown)..." required></textarea>
+            <div class="chat-composer-toolbar">
+              <button type="button" class="btn-chat-tool" id="btnInsertLink" title="Insertar Enlace Markdown">🔗 Enlace</button>
+              <label class="btn-chat-tool file-tool-btn" title="Adjuntar foto, captura o documento PDF">
+                📎 Adjuntar archivo (Foto / PDF / Doc)
+                <input type="file" id="channelFileInput" accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;">
+              </label>
+              <span id="uploadingIndicator" class="uploading-indicator" style="display: none;">⏳ Subiendo archivo...</span>
+            </div>
+
+            <textarea id="channelInputBody" rows="2" placeholder="Escribí un mensaje en este canal (soporta Markdown, links, imágenes)..." required></textarea>
+            
             <div class="chat-composer-actions">
-              <span class="composer-hint">💡 Se guarda en <code>/canales/</code> como archivo individual Markdown.</span>
+              <span class="composer-hint">💡 Se guarda en <code>/canales/</code>. Los adjuntos van a <code>/adjuntos/canales/</code>.</span>
               <button type="submit" class="btn primary small" id="btnSendChannelMessage">
                 💬 Publicar Mensaje
               </button>

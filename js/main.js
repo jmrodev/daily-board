@@ -82,9 +82,101 @@ function setupChannelComposer() {
   const form = document.getElementById("channelPostForm");
   if (!form) return;
 
+  const input = document.getElementById("channelInputBody");
+  const btnLink = document.getElementById("btnInsertLink");
+  const fileInput = document.getElementById("channelFileInput");
+  const uploadIndicator = document.getElementById("uploadingIndicator");
+
+  // Botón asistente para insertar enlaces Markdown
+  if (btnLink && input) {
+    btnLink.addEventListener("click", () => {
+      const url = prompt("Pegá la URL del enlace (ej: https://...):");
+      if (!url) return;
+      const text = prompt("Texto para mostrar del enlace (ej: Ver documentación):", "Enlace") || url;
+      const mdLink = `[${text}](${url})`;
+      
+      const start = input.selectionStart || 0;
+      const end = input.selectionEnd || 0;
+      input.value = input.value.substring(0, start) + mdLink + input.value.substring(end);
+      input.focus();
+    });
+  }
+
+  // Subida de archivos (Imágenes, PDF, Docs) a /adjuntos/canales/
+  if (fileInput && input) {
+    fileInput.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (!state.config.token) {
+        showToast("Conectá tu Token de GitHub para subir archivos.", "warning");
+        import("./modals.js").then(m => m.openAuthModal());
+        fileInput.value = "";
+        return;
+      }
+
+      // Límite razonable para API REST de GitHub (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        showToast("El archivo es demasiado grande (máx 10 MB)", "error");
+        fileInput.value = "";
+        return;
+      }
+
+      if (uploadIndicator) uploadIndicator.style.display = "inline";
+
+      try {
+        const username = (state.user && state.user.username) ? state.user.username : "anonimo";
+        const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const timestamp = Date.now();
+        const storedFilename = `${timestamp}-${cleanName}`;
+        const filePath = `adjuntos/canales/${storedFilename}`;
+
+        // Leer archivo como ArrayBuffer y codificar a Base64 puro
+        const buffer = await file.arrayBuffer();
+        let binary = "";
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const b64Content = btoa(binary);
+
+        const { githubRequest } = await import("./api.js");
+        await githubRequest(`/contents/${filePath}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `upload: adjunto ${cleanName} de @${username}`,
+            content: b64Content,
+            branch: "gh-pages"
+          })
+        });
+
+        // URL directa en GitHub Pages / Raw
+        const isImage = file.type.startsWith("image/");
+        const fileUrl = `https://raw.githubusercontent.com/${state.config.repoSlug}/gh-pages/${filePath}`;
+
+        let markdownSnippet = "";
+        if (isImage) {
+          markdownSnippet = `\n\n![${cleanName}](${fileUrl})\n`;
+        } else {
+          markdownSnippet = `\n\n📎 [Descargar ${cleanName}](${fileUrl})\n`;
+        }
+
+        input.value += markdownSnippet;
+        input.focus();
+        showToast(`Archivo "${cleanName}" adjuntado al mensaje`, "success");
+      } catch (err) {
+        showToast("Error al subir archivo a GitHub: " + err.message, "error");
+      } finally {
+        if (uploadIndicator) uploadIndicator.style.display = "none";
+        fileInput.value = "";
+      }
+    });
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const input = document.getElementById("channelInputBody");
     const message = input.value.trim();
     if (!message) return;
 

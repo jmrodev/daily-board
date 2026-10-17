@@ -1229,9 +1229,63 @@ body:has(dialog[open]) {
 }
 
 .chat-composer-container {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+.chat-composer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-chat-tool {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-chat-tool:hover {
+  background: #30363d;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.file-tool-btn {
+  color: var(--accent);
+  background: rgba(88, 166, 255, 0.08);
+  border-color: rgba(88, 166, 255, 0.25);
+}
+
+.file-tool-btn:hover {
+  background: rgba(88, 166, 255, 0.18);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.uploading-indicator {
+  font-size: 0.75rem;
+  color: var(--progress);
+  font-weight: 500;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
 }
 
 .chat-composer-form textarea {
@@ -1252,6 +1306,15 @@ body:has(dialog[open]) {
 .chat-composer-form textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+}
+
+.chat-message-body img {
+  max-width: 100%;
+  max-height: 420px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-top: 8px;
+  display: block;
 }
 
 .chat-composer-actions {
