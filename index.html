@@ -172,37 +172,38 @@
   </section>
 
   <!-- MODAL: INICIAR SESIÓN (GUIADO Y RÁPIDO) -->
-  <dialog id="authModal" class="modal">
+  <dialog id="authModal" class="modal modern-modal">
     <form id="authModalForm" method="dialog">
-      <h3>Iniciar Sesión en Project Hub</h3>
-      <p class="modal-desc">
-        Para <strong>crear tareas, mover tarjetas o registrar tu Daily</strong>, GitHub necesita tu Personal Access Token (PAT).
-      </p>
-
-      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 12px 0;">
-        <span style="font-size: 0.85rem; display: block; margin-bottom: 8px;">
-          👉 <strong>¿No tenés un token todavía?</strong> Crealo en 10 segundos:
-        </span>
-        <a href="https://github.com/settings/tokens/new?description=Project+Hub&scopes=repo" target="_blank" rel="noopener" class="btn primary small" style="display: inline-block;">
-          Generar mi Token en GitHub (1-Click) ↗
-        </a>
-        <small style="display: block; color: var(--text-muted); margin-top: 6px; font-size: 0.75rem;">
-          Se abre con los permisos de <code>repo</code> ya seleccionados. Hacé click abajo en "Generate token" y pegalo aquí.
-        </small>
+      <div class="modal-header">
+        <div>
+          <h3>🔑 Iniciar Sesión en Project Hub</h3>
+          <p class="modal-subtitle">Conectá tu cuenta de GitHub mediante Personal Access Token (PAT)</p>
+        </div>
+        <button type="button" class="btn-close" onclick="document.getElementById('authModal').close()">✕</button>
       </div>
 
-      <label>
-        Pegá tu Personal Access Token (PAT):
-        <input type="password" id="cfgUserToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" required style="width: 100%;">
-        <small style="color: var(--text-muted);">Queda guardado únicamente en tu navegador (<code>localStorage</code>).</small>
-      </label>
+      <div class="token-helper-card">
+        <div class="token-helper-info">
+          <span>👉 <strong>¿No tenés un token todavía?</strong> Crealo en 10 segundos:</span>
+          <small>Se abre con permisos de <code>repo</code> ya seleccionados. Hacé click en "Generate token" y pegalo abajo.</small>
+        </div>
+        <a href="https://github.com/settings/tokens/new?description=Project+Hub&scopes=repo" target="_blank" rel="noopener" class="btn primary small">
+          Generar mi Token (1-Click) ↗
+        </a>
+      </div>
 
-      <label style="margin-top: 10px;">
-        Repositorio de la clase:
-        <input type="text" id="cfgRepoSlug" value="jmrodev/daily-board" required style="width: 100%;">
-      </label>
+      <div class="form-group">
+        <label for="cfgUserToken">Pegá tu Personal Access Token (PAT):</label>
+        <input type="password" id="cfgUserToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" required class="form-input">
+        <small class="form-help">Queda guardado únicamente en tu navegador (<code>localStorage</code>).</small>
+      </div>
 
-      <div class="modal-buttons">
+      <div class="form-group">
+        <label for="cfgRepoSlug">Repositorio de la clase:</label>
+        <input type="text" id="cfgRepoSlug" value="jmrodev/daily-board" required class="form-input">
+      </div>
+
+      <div class="modal-footer">
         <button type="button" class="btn secondary" onclick="document.getElementById('authModal').close()">Cancelar</button>
         <button type="button" id="btnDisconnectAuth" class="btn danger">Cerrar Sesión</button>
         <button type="submit" class="btn primary">Conectar</button>
@@ -286,89 +287,126 @@
   </dialog>
 
   <!-- MODAL: NUEVA TAREA -->
-  <dialog id="newIssueModal" class="modal">
+  <dialog id="newIssueModal" class="modal modern-modal">
     <form id="newIssueForm" method="dialog">
-      <h3>Crear Nueva Tarea en GitHub</h3>
-      <label>
-        Título del Issue:
-        <input type="text" id="newTitle" required placeholder="ej: Crear endpoint de login">
-      </label>
-      <label>
-        Descripción (Markdown opcional):
-        <textarea id="newBody" rows="4" placeholder="Qué se va a hacer, criterios de aceptación..."></textarea>
-      </label>
-      <label>
-        Columna inicial:
-        <select id="newColumn">
-          <option value="todo">📌 Por Hacer</option>
-          <option value="progress">⚡ En Curso</option>
-          <option value="blocked">🚧 Bloqueado</option>
-        </select>
-      </label>
-      <label>
-        Asignar a Sprint / Hito:
-        <select id="newIssueMilestone">
-          <option value="current">🎯 Sprint en curso (Por defecto)</option>
-          <option value="none">⚪ Sin Sprint / Backlog general</option>
-        </select>
-      </label>
-      <div class="modal-buttons">
+      <div class="modal-header">
+        <div>
+          <h3>📌 Crear Nueva Tarea</h3>
+          <p class="modal-subtitle">Se creará un nuevo issue en el repositorio de GitHub</p>
+        </div>
+        <button type="button" class="btn-close" onclick="document.getElementById('newIssueModal').close()">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label for="newTitle">Título de la tarea <span class="required-indicator">*</span></label>
+        <input type="text" id="newTitle" required placeholder="ej: Implementar endpoint de autenticación JWT" class="form-input">
+      </div>
+
+      <div class="form-row-2col">
+        <div class="form-group">
+          <label for="newColumn">Columna inicial:</label>
+          <select id="newColumn" class="form-select">
+            <option value="todo">📌 Por Hacer</option>
+            <option value="progress">⚡ En Curso</option>
+            <option value="blocked">🚧 Bloqueado</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="newIssueMilestone">Sprint / Hito asignado:</label>
+          <select id="newIssueMilestone" class="form-select">
+            <option value="current">🎯 Sprint en curso (Por defecto)</option>
+            <option value="none">⚪ Sin Sprint / Backlog general</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="newBody">Descripción y Criterios de Aceptación <span class="label-hint">(soporta Markdown)</span></label>
+        <textarea id="newBody" rows="4" placeholder="Detallá el alcance, requerimientos técnicos o checklist de la tarea..." class="form-textarea"></textarea>
+      </div>
+
+      <div class="modal-footer">
         <button type="button" class="btn secondary" onclick="document.getElementById('newIssueModal').close()">Cancelar</button>
-        <button type="submit" class="btn primary">Crear en GitHub</button>
+        <button type="submit" class="btn primary">📌 Crear Tarea</button>
       </div>
     </form>
   </dialog>
 
   <!-- MODAL: NUEVO DOC -->
-  <dialog id="newDocModal" class="modal">
+  <dialog id="newDocModal" class="modal modern-modal">
     <form id="newDocForm" method="dialog">
-      <h3>Crear Nuevo Documento en /docs</h3>
-      <label>
-        Nombre del archivo (con .md):
-        <input type="text" id="newDocFilename" required placeholder="ej: api-spec.md">
-      </label>
-      <label>
-        Contenido inicial (Markdown):
-        <textarea id="newDocContent" rows="6" required placeholder="# Título del Documento&#10;&#10;Contenido..."></textarea>
-      </label>
-      <div class="modal-buttons">
+      <div class="modal-header">
+        <div>
+          <h3>📄 Crear Nuevo Documento</h3>
+          <p class="modal-subtitle">Se guardará como archivo Markdown en la carpeta /docs del repositorio</p>
+        </div>
+        <button type="button" class="btn-close" onclick="document.getElementById('newDocModal').close()">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label for="newDocFilename">Nombre del archivo <span class="label-hint">(debe terminar en .md)</span> <span class="required-indicator">*</span></label>
+        <input type="text" id="newDocFilename" required placeholder="ej: especificacion-api.md" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="newDocContent">Contenido inicial <span class="label-hint">(Markdown)</span> <span class="required-indicator">*</span></label>
+        <textarea id="newDocContent" rows="7" required placeholder="# Título del Documento&#10;&#10;Escribí aquí la documentación del proyecto..." class="form-textarea code-font"></textarea>
+      </div>
+
+      <div class="modal-footer">
         <button type="button" class="btn secondary" onclick="document.getElementById('newDocModal').close()">Cancelar</button>
-        <button type="submit" class="btn primary">Guardar en GitHub (/docs)</button>
+        <button type="submit" class="btn primary">💾 Guardar Documento</button>
       </div>
     </form>
   </dialog>
 
   <!-- MODAL: NUEVO SPRINT / MILESTONE -->
-  <dialog id="newMilestoneModal" class="modal">
+  <dialog id="newMilestoneModal" class="modal modern-modal">
     <form id="newMilestoneForm" method="dialog">
-      <h3>🎯 Crear Nuevo Sprint / Hito</h3>
-      <label>
-        Nombre del Sprint:
-        <input type="text" id="newMilestoneTitle" required placeholder="ej: Sprint 1 - MVP">
-      </label>
-      <label>
-        Fecha de entrega / Vencimiento:
-        <input type="date" id="newMilestoneDue">
-      </label>
-      <label>
-        Objetivo del Sprint (Descripción opcional):
-        <textarea id="newMilestoneDesc" rows="3" placeholder="Qué funcionalidades o módulos se deben entregar..."></textarea>
-      </label>
-      <div class="modal-buttons">
+      <div class="modal-header">
+        <div>
+          <h3>🎯 Crear Nuevo Sprint / Hito</h3>
+          <p class="modal-subtitle">Define una iteración con fecha de entrega para agrupar tareas</p>
+        </div>
+        <button type="button" class="btn-close" onclick="document.getElementById('newMilestoneModal').close()">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label for="newMilestoneTitle">Nombre del Sprint <span class="required-indicator">*</span></label>
+        <input type="text" id="newMilestoneTitle" required placeholder="ej: Sprint 1 - Autenticación y Layout Base" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="newMilestoneDue">Fecha límite de entrega:</label>
+        <input type="date" id="newMilestoneDue" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="newMilestoneDesc">Objetivo del Sprint <span class="label-hint">(opcional)</span></label>
+        <textarea id="newMilestoneDesc" rows="3" placeholder="Resumen de funcionalidades que el equipo debe entregar..." class="form-textarea"></textarea>
+      </div>
+
+      <div class="modal-footer">
         <button type="button" class="btn secondary" onclick="document.getElementById('newMilestoneModal').close()">Cancelar</button>
-        <button type="submit" class="btn primary">Crear Sprint en GitHub</button>
+        <button type="submit" class="btn primary">🎯 Crear Sprint</button>
       </div>
     </form>
   </dialog>
 
   <!-- MODAL: CONFIRMACIÓN DE ASIGNACIÓN -->
-  <dialog id="confirmModal" class="modal">
+  <dialog id="confirmModal" class="modal modern-modal">
     <div style="padding: 24px;">
-      <h3 id="confirmModalTitle" style="font-size: 1.15rem; margin-bottom: 8px;">⚠️ Regla de flujo</h3>
-      <p id="confirmModalMessage" style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 20px; line-height: 1.5;"></p>
-      <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px;">
+      <div class="modal-header" style="margin-bottom: 12px; padding-bottom: 12px;">
+        <div>
+          <h3 id="confirmModalTitle">⚠️ Regla de flujo</h3>
+          <p class="modal-subtitle">Asignación obligatoria antes de iniciar una tarea</p>
+        </div>
+      </div>
+      <p id="confirmModalMessage" style="font-size: 0.92rem; color: var(--text-main); margin-bottom: 20px; line-height: 1.5;"></p>
+      <div class="modal-footer" style="padding-top: 12px; margin-top: 0;">
         <button type="button" id="btnConfirmCancel" class="btn secondary">Cancelar</button>
-        <button type="button" id="btnConfirmOk" class="btn primary">Asignarme y continuar</button>
+        <button type="button" id="btnConfirmOk" class="btn primary">✋ Asignarme y continuar</button>
       </div>
     </div>
   </dialog>
