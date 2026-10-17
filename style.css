@@ -1564,4 +1564,90 @@ body:has(dialog[open]) {
   text-decoration: underline;
 }
 
+/* ========================================================
+   VISTA TABULAR DE DAILIES (COMPACTA Y SUTIL)
+   ======================================================== */
+.daily-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  margin-top: 10px;
+}
+
+.daily-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.daily-table th {
+  background: #11151c;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.daily-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(240, 246, 252, 0.06);
+  vertical-align: top;
+  line-height: 1.45;
+  color: #e6edf3;
+}
+
+.daily-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.daily-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.daily-author-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.daily-table-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+
+.daily-author-name {
+  font-size: 0.84rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.daily-table td.markdown-body {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  max-width: none;
+}
+
+.daily-table td.markdown-body p {
+  margin-bottom: 4px;
+}
+
+.daily-table td.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.daily-table td.has-blocker {
+  color: #f85149;
+  background: rgba(248, 81, 73, 0.06);
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+
 

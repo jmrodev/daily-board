@@ -1,8 +1,6 @@
-// js/tabs/dailies/dailies.js - Lógica aislada de Dailies conectada a /dailies/
+// js/tabs/dailies/dailies.js - Lógica aislada de Dailies conectada a /dailies/ con vista tabular compacta
 import { state, escapeHtml } from "../../state.js";
 import { githubRequest } from "../../api.js";
-
-let cachedDailyTree = [];
 
 export async function loadDailies() {
   const treeEl = document.getElementById("dailiesDatesList");
@@ -10,7 +8,6 @@ export async function loadDailies() {
 
   try {
     const items = await githubRequest("/contents/dailies?ref=gh-pages");
-    // Puede haber carpetas por fecha (YYYY-MM-DD) o archivos legacy (.md)
     const dateFolders = items.filter(item => item.type === "dir" || (item.type === "file" && item.name.endsWith(".md")));
 
     if (dateFolders.length === 0) {
@@ -81,20 +78,110 @@ async function showDateReports(folderItem) {
     }
 
     // Cargar todos los reportes de los alumnos de ese día en paralelo
-    const reports = await Promise.all(
+    const parsedReports = await Promise.all(
       mdFiles.map(async file => {
         try {
           const fileData = await githubRequest(`/contents/${file.path}?ref=gh-pages`);
           const raw = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ""))));
-          return `<div class="daily-user-card">${window.marked ? window.marked.parse(raw) : raw}</div>`;
+          const username = file.name.replace(".md", "");
+          return parseDailyMarkdown(raw, username);
         } catch {
-          return "";
+          return null;
         }
       })
     );
 
-    contentArea.innerHTML = reports.join("<hr style='border: 0; border-top: 1px solid var(--border); margin: 24px 0;' />");
+    const validReports = parsedReports.filter(Boolean);
+    if (validReports.length === 0) {
+      contentArea.innerHTML = `<p class="placeholder-text">No se pudieron leer los reportes de este día.</p>`;
+      return;
+    }
+
+    contentArea.innerHTML = renderDailyTable(validReports);
   } catch (err) {
     contentArea.innerHTML = `<p style="color: var(--blocked);">Error al leer la carpeta de dailies: ${err.message}</p>`;
   }
+}
+
+function parseDailyMarkdown(rawMarkdown, defaultUsername) {
+  let author = `@${defaultUsername}`;
+  const authorMatch = rawMarkdown.match(/\*\*Autor:\*\*\s*@?([^\n]+)/);
+  if (authorMatch) author = authorMatch[1].trim();
+
+  // Extraer las 3 respuestas
+  // 1. ¿Qué hiciste ayer? ... 2. ¿Qué tenés pensado hacer hoy? ... 3. ¿Tenés algún bloqueo o impedimento?
+  let done = "";
+  let plan = "";
+  let blocker = "";
+
+  const q1Match = rawMarkdown.match(/###\s*1\.[^\n]*\n([\s\S]*?)(?=###\s*2\.|$)/);
+  if (q1Match) done = q1Match[1].trim();
+
+  const q2Match = rawMarkdown.match(/###\s*2\.[^\n]*\n([\s\S]*?)(?=###\s*3\.|$)/);
+  if (q2Match) plan = q2Match[1].trim();
+
+  const q3Match = rawMarkdown.match(/###\s*3\.[^\n]*\n([\s\S]*?)(?=$)/);
+  if (q3Match) blocker = q3Match[1].trim();
+
+  // Si no coincidieron las cabeceras exactas, fallback a líneas
+  if (!done && !plan) {
+    done = rawMarkdown;
+  }
+
+  return {
+    author: author.startsWith("@") ? author : `@${author}`,
+    done: done || "—",
+    plan: plan || "—",
+    blocker: blocker || "Ninguno"
+  };
+}
+
+function renderDailyTable(reports) {
+  const rows = reports.map(r => {
+    const username = r.author.replace("@", "");
+    const avatarUrl = `https://github.com/${username}.png?size=32`;
+    const isBlocker = r.blocker && r.blocker.toLowerCase() !== "ninguno" && r.blocker !== "—";
+
+    const doneHtml = window.marked ? window.marked.parse(r.done) : escapeHtml(r.done);
+    const planHtml = window.marked ? window.marked.parse(r.plan) : escapeHtml(r.plan);
+    const blockerHtml = window.marked ? window.marked.parse(r.blocker) : escapeHtml(r.blocker);
+
+    return `
+      <tr>
+        <td class="td-author">
+          <div class="daily-author-cell">
+            <img src="${avatarUrl}" class="daily-table-avatar" onerror="this.src='https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'" alt="${username}">
+            <strong class="daily-author-name">${escapeHtml(r.author)}</strong>
+          </div>
+        </td>
+        <td class="td-done markdown-body">
+          ${doneHtml}
+        </td>
+        <td class="td-plan markdown-body">
+          ${planHtml}
+        </td>
+        <td class="td-blocker markdown-body ${isBlocker ? "has-blocker" : ""}">
+          ${blockerHtml}
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  return `
+    <div class="daily-table-wrapper">
+      <table class="daily-table">
+        <thead>
+          <tr>
+            <th style="width: 170px;">Miembro</th>
+            <th>✅ Logrado ayer / reciente</th>
+            <th>🎯 Plan para hoy</th>
+            <th style="width: 220px;">🚧 Bloqueos</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
