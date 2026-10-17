@@ -1,57 +1,45 @@
 // js/modals.js - Manejo de diálogos, autenticación y envíos
 import { state, saveConfig, clearUserSession, COLUMN_LABELS } from "./state.js";
 import { githubRequest } from "./api.js";
-import { iniciarLoginGitHub, cancelarLogin } from "./auth.js";
 import { loadKanban, renderKanban } from "./tabs/kanban.js";
 import { loadDocs } from "./tabs/docs.js";
+import { loadDailies } from "./tabs/dailies.js";
 
 export function initModals(onAuthChanged) {
-  // Click en badge de estado de auth
+  // Click en badge de estado de auth arriba a la derecha
   document.getElementById("authStatus").addEventListener("click", openAuthModal);
 
-  // Botón iniciar flujo OAuth Device
-  document.getElementById("btnIniciarOAuth").addEventListener("click", () => {
-    const viewDefault = document.getElementById("authViewDefault");
-    const viewDevice = document.getElementById("authViewDevice");
-
-    viewDefault.style.display = "none";
-    viewDevice.style.display = "block";
-
-    iniciarLoginGitHub(
-      ({ userCode, verificationUri }) => {
-        document.getElementById("deviceUserCode").textContent = userCode;
-        const linkBtn = document.getElementById("btnAbrirGitHubDevice");
-        linkBtn.href = verificationUri;
-      },
-      (userProfile) => {
-        viewDevice.style.display = "none";
-        viewDefault.style.display = "block";
-        document.getElementById("authModal").close();
-        onAuthChanged();
-      },
-      (errMsg) => {
-        alert("Error de autenticación: " + errMsg);
-        viewDevice.style.display = "none";
-        viewDefault.style.display = "block";
-      }
-    );
-  });
-
-  // Cancelar Device flow
-  document.getElementById("btnCancelarDevice").addEventListener("click", () => {
-    cancelarLogin();
-    document.getElementById("authViewDevice").style.display = "none";
-    document.getElementById("authViewDefault").style.display = "block";
-  });
-
-  // Guardar configuración manual de repo o PAT de emergencia
-  document.getElementById("authModalForm").addEventListener("submit", (e) => {
+  // Guardar Token y validar contra GitHub
+  document.getElementById("authModalForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const repoSlug = document.getElementById("cfgRepoSlug").value.trim();
-    const manualToken = document.getElementById("cfgUserToken").value.trim();
-    saveConfig(repoSlug, manualToken || undefined);
-    document.getElementById("authModal").close();
-    onAuthChanged();
+    const token = document.getElementById("cfgUserToken").value.trim();
+
+    if (!token) {
+      alert("Por favor ingresá tu Token para iniciar sesión.");
+      return;
+    }
+
+    try {
+      // Validar el token contra GitHub /user
+      const userRes = await fetch("https://api.github.com/user", {
+        headers: {
+          "Accept": "application/vnd.github+json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (!userRes.ok) {
+        throw new Error("El token ingresado no es válido o no tiene permisos.");
+      }
+
+      const userData = await userRes.json();
+      saveConfig(repoSlug, token, userData.login, userData.avatar_url);
+      document.getElementById("authModal").close();
+      onAuthChanged();
+    } catch (err) {
+      alert(err.message);
+    }
   });
 
   // Botón Cerrar Sesión
@@ -61,7 +49,7 @@ export function initModals(onAuthChanged) {
     onAuthChanged();
   });
 
-  // Modal Nueva Tarea
+  // Modal Nueva Tarea (Issue)
   document.getElementById("newIssueForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const title = document.getElementById("newTitle").value.trim();
@@ -87,7 +75,7 @@ export function initModals(onAuthChanged) {
     }
   });
 
-  // Modal Nuevo Doc
+  // Modal Nuevo Doc (/docs)
   document.getElementById("newDocForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     let filename = document.getElementById("newDocFilename").value.trim();
@@ -113,19 +101,69 @@ export function initModals(onAuthChanged) {
       alert("Error al guardar documento en GitHub: " + err.message);
     }
   });
+
+  // Modal Registrar Daily (/dailies/YYYY-MM-DD.md)
+  document.getElementById("newDailyForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const dateStr = document.getElementById("dailyDateInput").value;
+    const qAyer = document.getElementById("dailyDone").value.trim();
+    const qHoy = document.getElementById("dailyPlan").value.trim();
+    const qBloqueo = document.getElementById("dailyBlocker").value.trim() || "Ninguno";
+
+    const author = (state.user && state.user.username) ? `@${state.user.username}` : "Alumno";
+    const filename = `${dateStr}.md`;
+    const path = `dailies/${filename}`;
+
+    const nuevaEntrada = `\n### ${author}\n- **Ayer / Realizado:** ${qAyer}\n- **Plan para hoy:** ${qHoy}\n- **Bloqueos:** ${qBloqueo}\n`;
+
+    try {
+      let sha = null;
+      let existingContent = `# Daily Scrum · ${dateStr}\n\nRegistro diario de actividades y bloqueos del equipo.\n\n---`;
+
+      // Verificar si ya existe el daily de hoy para concatenar la respuesta
+      try {
+        const fileData = await githubRequest(`/contents/${path}`);
+        sha = fileData.sha;
+        existingContent = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ""))));
+      } catch (err) {
+        // No existe todavía, se crea desde cero
+      }
+
+      const updatedContent = existingContent + nuevaEntrada;
+      const b64Content = btoa(unescape(encodeURIComponent(updatedContent)));
+
+      const bodyPayload = {
+        message: `daily: registrar reporte de ${author} (${dateStr})`,
+        content: b64Content
+      };
+      if (sha) bodyPayload.sha = sha;
+
+      await githubRequest(`/contents/${path}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyPayload)
+      });
+
+      document.getElementById("newDailyModal").close();
+      document.getElementById("dailyDone").value = "";
+      document.getElementById("dailyPlan").value = "";
+      document.getElementById("dailyBlocker").value = "";
+      loadDailies();
+    } catch (err) {
+      alert("Error al registrar daily: " + err.message);
+    }
+  });
 }
 
 export function openAuthModal() {
   document.getElementById("cfgRepoSlug").value = state.config.repoSlug;
-  document.getElementById("cfgUserToken").value = state.config.token;
-  document.getElementById("authViewDevice").style.display = "none";
-  document.getElementById("authViewDefault").style.display = "block";
+  document.getElementById("cfgUserToken").value = state.config.token || "";
   document.getElementById("authModal").showModal();
 }
 
 export function openNewIssueModal() {
   if (!state.config.token) {
-    alert("Para crear un issue en GitHub primero iniciá sesión con GitHub.");
+    alert("Para crear un issue primero iniciá sesión con tu Token de GitHub.");
     openAuthModal();
     return;
   }
@@ -134,9 +172,21 @@ export function openNewIssueModal() {
 
 export function openNewDocModal() {
   if (!state.config.token) {
-    alert("Para crear un documento en GitHub primero iniciá sesión con GitHub.");
+    alert("Para crear un documento primero iniciá sesión con tu Token de GitHub.");
     openAuthModal();
     return;
   }
   document.getElementById("newDocModal").showModal();
+}
+
+export function openNewDailyModal() {
+  if (!state.config.token) {
+    alert("Para registrar tu Daily primero iniciá sesión con tu Token de GitHub.");
+    openAuthModal();
+    return;
+  }
+  // Fecha de hoy por defecto en formato YYYY-MM-DD
+  const hoy = new Date().toISOString().split("T")[0];
+  document.getElementById("dailyDateInput").value = hoy;
+  document.getElementById("newDailyModal").showModal();
 }

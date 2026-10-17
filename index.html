@@ -23,6 +23,7 @@
     <!-- Navegación por Solapas -->
     <nav class="nav-tabs">
       <button class="nav-tab active" data-tab="kanban">📌 Tablero Kanban</button>
+      <button class="nav-tab" data-tab="dailies">☕ Daily Scrum</button>
       <button class="nav-tab" data-tab="docs">📖 Docs / Wiki</button>
       <button class="nav-tab" data-tab="sprints">🎯 Sprints / Milestones</button>
       <button class="nav-tab" data-tab="activity">⚡ Actividad</button>
@@ -30,7 +31,7 @@
 
     <!-- Estado de Conexión & Acciones -->
     <div class="header-actions">
-      <div id="authStatus" class="auth-status">
+      <div id="authStatus" class="auth-status" title="Hacé click para iniciar sesión">
         <span class="auth-dot" id="authDot"></span>
         <span id="authLabel">Iniciar sesión</span>
       </div>
@@ -76,7 +77,32 @@
     </div>
   </section>
 
-  <!-- SOLAPA 2: DOCS / WIKI -->
+  <!-- SOLAPA 2: DAILY SCRUM (/dailies) -->
+  <section id="tab-dailies" class="tab-content">
+    <div class="docs-layout">
+      <aside class="docs-sidebar">
+        <div class="sidebar-head">
+          <h3>Historial de Dailies</h3>
+        </div>
+        <ul id="dailiesDatesList" class="docs-tree dailies-tree">
+          <li class="loading">Cargando fechas de /dailies...</li>
+        </ul>
+      </aside>
+      <main class="docs-viewer">
+        <div class="docs-header">
+          <h2 id="currentDailyTitle">Seleccioná una fecha</h2>
+          <div id="dailyActions" style="display: none;">
+            <a id="githubDailyLink" href="#" target="_blank" rel="noopener" class="btn small secondary">Ver en GitHub ↗</a>
+          </div>
+        </div>
+        <article id="dailyContent" class="markdown-body">
+          <p class="placeholder-text">Elegí una fecha del historial para ver el estado del equipo.</p>
+        </article>
+      </main>
+    </div>
+  </section>
+
+  <!-- SOLAPA 3: DOCS / WIKI (/docs) -->
   <section id="tab-docs" class="tab-content">
     <div class="docs-layout">
       <aside class="docs-sidebar">
@@ -101,7 +127,7 @@
     </div>
   </section>
 
-  <!-- SOLAPA 3: SPRINTS / MILESTONES -->
+  <!-- SOLAPA 4: SPRINTS / MILESTONES -->
   <section id="tab-sprints" class="tab-content">
     <div class="sprints-container">
       <div class="sprints-head">
@@ -114,7 +140,7 @@
     </div>
   </section>
 
-  <!-- SOLAPA 4: ACTIVIDAD -->
+  <!-- SOLAPA 5: ACTIVIDAD -->
   <section id="tab-activity" class="tab-content">
     <div class="activity-container">
       <div class="activity-head">
@@ -127,63 +153,70 @@
     </div>
   </section>
 
-  <!-- MODAL: AUTENTICACIÓN / OAUTH DEVICE -->
+  <!-- MODAL: INICIAR SESIÓN (GUIADO Y RÁPIDO) -->
   <dialog id="authModal" class="modal">
-    <!-- Vista Normal -->
-    <div id="authViewDefault">
-      <h3>Conectar Cuenta de GitHub</h3>
+    <form id="authModalForm" method="dialog">
+      <h3>Iniciar Sesión en Classroom Hub</h3>
       <p class="modal-desc">
-        Para crear issues, mover tarjetas o crear documentos sin tokens manuales, iniciá sesión directamente:
+        Para <strong>crear tareas, mover tarjetas o registrar tu Daily</strong>, GitHub necesita tu Personal Access Token (PAT).
       </p>
 
-      <div style="text-align: center; margin: 20px 0;">
-        <button type="button" id="btnIniciarOAuth" class="btn primary" style="padding: 10px 18px; font-size: 0.95rem;">
-          🐙 Iniciar sesión con GitHub
-        </button>
-      </div>
-
-      <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
-
-      <form id="authModalForm" method="dialog">
-        <label>
-          Repositorio activo (Dueño/Repo):
-          <input type="text" id="cfgRepoSlug" value="jmrodev/daily-board" required>
-        </label>
-        <details style="margin-top: 10px;">
-          <summary style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Opciones avanzadas (Personal Access Token manual)</summary>
-          <input type="password" id="cfgUserToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="margin-top: 6px; width: 100%;">
-        </details>
-        <div class="modal-buttons">
-          <button type="button" class="btn secondary" onclick="document.getElementById('authModal').close()">Cerrar</button>
-          <button type="button" id="btnDisconnectAuth" class="btn danger">Cerrar Sesión</button>
-          <button type="submit" class="btn primary">Guardar Repo</button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Vista Durante el Login Device Flow -->
-    <div id="authViewDevice" style="display: none; text-align: center;">
-      <h3>Confirmá tu Inicio de Sesión</h3>
-      <p class="modal-desc">Ingresá este código en GitHub para autorizar a Classroom Hub:</p>
-      
-      <div style="margin: 18px 0;">
-        <span id="deviceUserCode" style="font-family: monospace; font-size: 1.8rem; font-weight: bold; background: var(--bg); border: 2px solid var(--accent); padding: 8px 18px; border-radius: 8px; letter-spacing: 2px; color: var(--accent);">
-          CARGANDO...
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 12px 0;">
+        <span style="font-size: 0.85rem; display: block; margin-bottom: 8px;">
+          👉 <strong>¿No tenés un token todavía?</strong> Crealo en 10 segundos:
         </span>
-      </div>
-
-      <div style="margin-bottom: 20px;">
-        <a id="btnAbrirGitHubDevice" href="https://github.com/login/device" target="_blank" rel="noopener" class="btn primary" style="display: inline-block; padding: 10px 20px;">
-          Abrir GitHub y Pegar Código ↗
+        <a href="https://github.com/settings/tokens/new?description=Classroom+Hub&scopes=repo" target="_blank" rel="noopener" class="btn primary small" style="display: inline-block;">
+          Generar mi Token en GitHub (1-Click) ↗
         </a>
+        <small style="display: block; color: var(--text-muted); margin-top: 6px; font-size: 0.75rem;">
+          Se abre con los permisos de <code>repo</code> ya seleccionados. Hacé click abajo en "Generate token" y pegalo aquí.
+        </small>
       </div>
 
-      <small style="color: var(--text-muted); display: block; margin-bottom: 16px;">
-        Esperando confirmación en GitHub... esta ventana se cerrará sola.
-      </small>
+      <label>
+        Pegá tu Personal Access Token (PAT):
+        <input type="password" id="cfgUserToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" required style="width: 100%;">
+        <small style="color: var(--text-muted);">Queda guardado únicamente en tu navegador (<code>localStorage</code>).</small>
+      </label>
 
-      <button type="button" id="btnCancelarDevice" class="btn secondary">Cancelar</button>
-    </div>
+      <label style="margin-top: 10px;">
+        Repositorio de la clase:
+        <input type="text" id="cfgRepoSlug" value="jmrodev/daily-board" required style="width: 100%;">
+      </label>
+
+      <div class="modal-buttons">
+        <button type="button" class="btn secondary" onclick="document.getElementById('authModal').close()">Cancelar</button>
+        <button type="button" id="btnDisconnectAuth" class="btn danger">Cerrar Sesión</button>
+        <button type="submit" class="btn primary">Conectar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: REGISTRAR MI DAILY -->
+  <dialog id="newDailyModal" class="modal">
+    <form id="newDailyForm" method="dialog">
+      <h3>☕ Registrar mi Daily Scrum</h3>
+      <label>
+        Fecha del Daily:
+        <input type="date" id="dailyDateInput" required>
+      </label>
+      <label>
+        1. ¿Qué hiciste ayer / recientemente?
+        <textarea id="dailyDone" rows="3" required placeholder="ej: Diseñé la interfaz de usuario y arreglé el bug del drag & drop..."></textarea>
+      </label>
+      <label>
+        2. ¿Qué vas a hacer hoy?
+        <textarea id="dailyPlan" rows="3" required placeholder="ej: Voy a implementar la integración de la API y documentar en /docs..."></textarea>
+      </label>
+      <label>
+        3. ¿Tenés algún impedimento o bloqueo?
+        <input type="text" id="dailyBlocker" placeholder="ej: Ninguno / Esperando que se apruebe el PR #3">
+      </label>
+      <div class="modal-buttons">
+        <button type="button" class="btn secondary" onclick="document.getElementById('newDailyModal').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Guardar en /dailies</button>
+      </div>
+    </form>
   </dialog>
 
   <!-- MODAL: NUEVA TAREA -->

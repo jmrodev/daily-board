@@ -2,9 +2,10 @@
 import { state } from "./state.js";
 import { loadKanban, handleDrop } from "./tabs/kanban.js";
 import { loadDocs } from "./tabs/docs.js";
+import { loadDailies } from "./tabs/dailies.js";
 import { loadSprints } from "./tabs/sprints.js";
 import { loadActivity } from "./tabs/activity.js";
-import { initModals, openNewIssueModal, openNewDocModal } from "./modals.js";
+import { initModals, openNewIssueModal, openNewDocModal, openNewDailyModal } from "./modals.js";
 
 // Inicialización de la aplicación
 document.addEventListener("DOMContentLoaded", () => {
@@ -27,6 +28,7 @@ function setupNavigation() {
   document.getElementById("btnNuevaAccion").addEventListener("click", () => {
     if (state.currentTab === "kanban") openNewIssueModal();
     if (state.currentTab === "docs") openNewDocModal();
+    if (state.currentTab === "dailies") openNewDailyModal();
   });
 }
 
@@ -50,6 +52,10 @@ export function switchTab(tabKey) {
     btnAccion.style.display = "inline-block";
     btnAccion.textContent = "➕ Nuevo Doc";
     loadDocs();
+  } else if (tabKey === "dailies") {
+    btnAccion.style.display = "inline-block";
+    btnAccion.textContent = "➕ Registrar mi Daily";
+    loadDailies();
   } else {
     btnAccion.style.display = "none";
     if (tabKey === "sprints") loadSprints();
@@ -81,7 +87,7 @@ function renderAuthBadge() {
   if (state.user && state.user.username) {
     dot.classList.add("active");
     label.innerHTML = `
-      <img src="${state.user.avatarUrl}" width="16" height="16" style="border-radius: 50%; vertical-align: middle; margin-right: 4px;">
+      <img src="${state.user.avatarUrl}" width="18" height="18" style="border-radius: 50%; vertical-align: middle; margin-right: 4px;">
       @${state.user.username}
     `;
   } else if (state.config.token) {
