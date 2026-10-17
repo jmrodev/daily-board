@@ -311,19 +311,30 @@ body {
 }
 
 .btn-self-assign {
-  background: transparent;
-  border: 1px solid var(--border);
+  background: rgba(88, 166, 255, 0.1);
+  border: 1px solid rgba(88, 166, 255, 0.3);
   color: var(--accent);
   border-radius: 4px;
-  font-size: 0.65rem;
-  padding: 1px 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 2px 7px;
   cursor: pointer;
-  line-height: 1;
+  transition: all 0.15s ease;
 }
 
 .btn-self-assign:hover {
-  background: var(--surface-hover);
-  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.badge-assigned-me {
+  background: rgba(35, 134, 54, 0.15);
+  color: #3fb950;
+  border: 1px solid rgba(35, 134, 54, 0.3);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .card-labels {

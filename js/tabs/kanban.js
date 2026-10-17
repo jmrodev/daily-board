@@ -119,8 +119,12 @@ export function renderKanban() {
       </a>
     ` : "";
 
+    const isAssignedToMe = state.user && issue.assignee?.login === state.user.username;
     const assigneeText = issue.assignee ? `@${escapeHtml(issue.assignee.login)}` : "Sin asignar";
-    const canSelfAssign = state.config.token && state.user && issue.assignee?.login !== state.user.username;
+
+    const assignBtnHtml = isAssignedToMe
+      ? `<span class="badge-assigned-me">✓ Mía</span>`
+      : `<button class="btn-self-assign" title="Asignarme esta tarea" onclick="event.stopPropagation(); window.selfAssignIssue(${issue.number})">➕ Asignarme</button>`;
 
     card.innerHTML = `
       <div class="card-title">
@@ -132,8 +136,8 @@ export function renderKanban() {
       <div class="card-meta">
         <span class="assignee-tag" title="Responsable de la tarea">
           👤 ${assigneeText}
-          ${canSelfAssign ? `<button class="btn-self-assign" title="Asignármela a mí" onclick="event.stopPropagation(); window.selfAssignIssue(${issue.number})">➕</button>` : ""}
         </span>
+        ${assignBtnHtml}
         <span>💬 ${issue.comments}</span>
       </div>
       ${labelsHtml ? `<div class="card-labels">${labelsHtml}</div>` : ""}
@@ -218,7 +222,8 @@ export async function handleDrop(e, targetCol) {
 // Función global para auto-asignarse un issue con un click
 window.selfAssignIssue = async function (issueNumber) {
   if (!state.config.token || !state.user) {
-    alert("Iniciá sesión para asignarte esta tarea.");
+    alert("Iniciá sesión con tu token de GitHub para asignarte esta tarea.");
+    import("../modals.js").then(m => m.openAuthModal());
     return;
   }
 
