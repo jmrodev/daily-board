@@ -1,5 +1,5 @@
 // js/modals.js - Manejo de diálogos, autenticación y envíos
-import { state, saveConfig, clearUserSession, COLUMN_LABELS } from "./state.js";
+import { state, saveConfig, clearUserSession, COLUMN_LABELS, escapeHtml } from "./state.js";
 import { githubRequest } from "./api.js";
 import { loadKanban, renderKanban } from "./tabs/kanban.js";
 import { loadDocs } from "./tabs/docs.js";
