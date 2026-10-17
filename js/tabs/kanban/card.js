@@ -78,6 +78,10 @@ export function createKanbanCard(issue, colKey) {
         : `<button class="btn-self-assign" title="Asignarme esta tarea" onclick="event.stopPropagation(); window.selfAssignIssue(${issue.number})">➕ Asignarme</button>`)
     : "";
 
+  const milestoneHtml = issue.milestone
+    ? `<span class="milestone-badge" title="Sprint: ${escapeHtml(issue.milestone.title)}">🎯 ${escapeHtml(issue.milestone.title)}</span>`
+    : "";
+
   card.innerHTML = `
     <div class="card-title">
       <a href="${issue.html_url}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;">
@@ -95,7 +99,10 @@ export function createKanbanCard(issue, colKey) {
         💬 ${issue.comments}
       </button>
     </div>
-    ${labelsHtml ? `<div class="card-labels">${labelsHtml}</div>` : ""}
+    <div class="card-badges-row">
+      ${milestoneHtml}
+      ${labelsHtml ? `<div class="card-labels">${labelsHtml}</div>` : ""}
+    </div>
   `;
 
   return card;

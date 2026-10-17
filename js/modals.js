@@ -58,15 +58,29 @@ export function initModals(onAuthChanged) {
     const title = document.getElementById("newTitle").value.trim();
     const body = document.getElementById("newBody").value.trim();
     const column = document.getElementById("newColumn").value;
+    const milestoneChoice = document.getElementById("newIssueMilestone").value;
 
     const labels = [];
     if (COLUMN_LABELS[column]) labels.push(COLUMN_LABELS[column]);
+
+    const payload = { title, body, labels };
+
+    // Si eligió Sprint en curso (o un milestone específico)
+    if (milestoneChoice === "current") {
+      const currentSprint = (state.milestones || []).find(m => m.state === "open");
+      if (currentSprint) {
+        payload.milestone = currentSprint.number;
+      }
+    } else if (milestoneChoice !== "none") {
+      const msNum = parseInt(milestoneChoice, 10);
+      if (!isNaN(msNum)) payload.milestone = msNum;
+    }
 
     try {
       const nuevo = await githubRequest("/issues", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, labels })
+        body: JSON.stringify(payload)
       });
       state.issues.unshift(nuevo);
       renderKanban();
@@ -78,6 +92,40 @@ export function initModals(onAuthChanged) {
       showToast("Error al crear issue: " + err.message, "error");
     }
   });
+
+  // Modal Nuevo Sprint / Milestone
+  const milestoneForm = document.getElementById("newMilestoneForm");
+  if (milestoneForm) {
+    milestoneForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("newMilestoneTitle").value.trim();
+      const dueOn = document.getElementById("newMilestoneDue").value;
+      const description = document.getElementById("newMilestoneDesc").value.trim();
+
+      const payload = { title, description, state: "open" };
+      if (dueOn) {
+        // Formato ISO requerido por GitHub: YYYY-MM-DDTHH:MM:SSZ
+        payload.due_on = new Date(`${dueOn}T23:59:59Z`).toISOString();
+      }
+
+      try {
+        await githubRequest("/milestones", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        document.getElementById("newMilestoneModal").close();
+        document.getElementById("newMilestoneTitle").value = "";
+        document.getElementById("newMilestoneDue").value = "";
+        document.getElementById("newMilestoneDesc").value = "";
+        showToast(`Sprint "${title}" creado exitosamente`, "success");
+        import("./tabs/sprints/sprints.js").then(m => m.loadSprints());
+        loadKanban();
+      } catch (err) {
+        showToast("Error al crear Sprint en GitHub: " + err.message, "error");
+      }
+    });
+  }
 
   // Modal Nuevo Doc (/docs)
   document.getElementById("newDocForm").addEventListener("submit", async (e) => {
@@ -260,7 +308,34 @@ export function openNewIssueModal() {
     openAuthModal();
     return;
   }
+
+  // Rellenar dinámicamente los Milestones disponibles
+  const selectMs = document.getElementById("newIssueMilestone");
+  if (selectMs) {
+    const openSprints = (state.milestones || []).filter(m => m.state === "open");
+    let optionsHtml = `<option value="current">🎯 Sprint en curso (Por defecto)</option>`;
+    if (openSprints.length > 0) {
+      optionsHtml += `<optgroup label="Sprints específicos">`;
+      openSprints.forEach(m => {
+        optionsHtml += `<option value="${m.number}">🎯 ${escapeHtml(m.title)}</option>`;
+      });
+      optionsHtml += `</optgroup>`;
+    }
+    optionsHtml += `<option value="none">⚪ Sin Sprint / Backlog general</option>`;
+    selectMs.innerHTML = optionsHtml;
+    selectMs.value = "current";
+  }
+
   document.getElementById("newIssueModal").showModal();
+}
+
+export function openNewMilestoneModal() {
+  if (!state.config.token) {
+    showToast("Para crear un Sprint primero iniciá sesión con tu Token de GitHub.", "warning");
+    openAuthModal();
+    return;
+  }
+  document.getElementById("newMilestoneModal").showModal();
 }
 
 export function openNewDocModal() {

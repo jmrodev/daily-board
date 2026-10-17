@@ -305,6 +305,13 @@
           <option value="blocked">🚧 Bloqueado</option>
         </select>
       </label>
+      <label>
+        Asignar a Sprint / Hito:
+        <select id="newIssueMilestone">
+          <option value="current">🎯 Sprint en curso (Por defecto)</option>
+          <option value="none">⚪ Sin Sprint / Backlog general</option>
+        </select>
+      </label>
       <div class="modal-buttons">
         <button type="button" class="btn secondary" onclick="document.getElementById('newIssueModal').close()">Cancelar</button>
         <button type="submit" class="btn primary">Crear en GitHub</button>
@@ -327,6 +334,29 @@
       <div class="modal-buttons">
         <button type="button" class="btn secondary" onclick="document.getElementById('newDocModal').close()">Cancelar</button>
         <button type="submit" class="btn primary">Guardar en GitHub (/docs)</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: NUEVO SPRINT / MILESTONE -->
+  <dialog id="newMilestoneModal" class="modal">
+    <form id="newMilestoneForm" method="dialog">
+      <h3>🎯 Crear Nuevo Sprint / Hito</h3>
+      <label>
+        Nombre del Sprint:
+        <input type="text" id="newMilestoneTitle" required placeholder="ej: Sprint 1 - MVP">
+      </label>
+      <label>
+        Fecha de entrega / Vencimiento:
+        <input type="date" id="newMilestoneDue">
+      </label>
+      <label>
+        Objetivo del Sprint (Descripción opcional):
+        <textarea id="newMilestoneDesc" rows="3" placeholder="Qué funcionalidades o módulos se deben entregar..."></textarea>
+      </label>
+      <div class="modal-buttons">
+        <button type="button" class="btn secondary" onclick="document.getElementById('newMilestoneModal').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Crear Sprint en GitHub</button>
       </div>
     </form>
   </dialog>

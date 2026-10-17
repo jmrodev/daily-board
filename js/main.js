@@ -41,6 +41,7 @@ function setupNavigation() {
     if (state.currentTab === "kanban") openNewIssueModal();
     if (state.currentTab === "docs") openNewDocModal();
     if (state.currentTab === "dailies") openNewDailyModal();
+    if (state.currentTab === "sprints") import("./modals.js").then(m => m.openNewMilestoneModal());
   });
 
   // Filtro unificado de Usuario (Todos / Mis tareas / Sin asignar / Compañeros)
@@ -93,9 +94,12 @@ export function switchTab(tabKey) {
     btnAccion.style.display = "inline-block";
     btnAccion.textContent = "➕ Registrar mi Daily";
     loadDailies();
+  } else if (tabKey === "sprints") {
+    btnAccion.style.display = "inline-block";
+    btnAccion.textContent = "➕ Nuevo Sprint";
+    loadSprints();
   } else {
     btnAccion.style.display = "none";
-    if (tabKey === "sprints") loadSprints();
     if (tabKey === "activity") loadActivity();
   }
 }

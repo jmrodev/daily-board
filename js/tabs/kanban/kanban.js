@@ -25,14 +25,16 @@ export function classifyColumn(issue) {
 
 export async function loadKanban() {
   try {
-    // Cargar issues y pull requests en paralelo
-    const [issues, pulls] = await Promise.all([
+    // Cargar issues, pull requests y milestones en paralelo
+    const [issues, pulls, milestones] = await Promise.all([
       githubRequest("/issues?state=all&per_page=100"),
-      githubRequest("/pulls?state=all&per_page=100").catch(() => [])
+      githubRequest("/pulls?state=all&per_page=100").catch(() => []),
+      githubRequest("/milestones?state=open").catch(() => [])
     ]);
 
     state.issues = issues;
     state.pullRequests = pulls;
+    state.milestones = milestones;
     state.prReviews = state.prReviews || {};
 
     // Renderizado inmediato: la UI jamás se traba esperando reviews
@@ -118,6 +120,13 @@ export function renderKanban() {
   const filterAssignee = state.filters.assignee;
   const filterSearch = (state.filters.search || "").toLowerCase();
 
+  // Detectar el Sprint en curso (el primer milestone abierto)
+  const currentSprint = (state.milestones || []).find(m => m.state === "open");
+
+  // Arrays de distribución para la columna "Por Hacer"
+  const todoCurrentSprint = [];
+  const todoFutureOrBacklog = [];
+
   state.issues.forEach(issue => {
     if (issue.pull_request) return; // Filtrar PRs directos en issues
 
@@ -146,10 +155,52 @@ export function renderKanban() {
     }
 
     const card = createKanbanCard(issue, colKey);
-    if (columns[colKey]) {
-      columns[colKey].appendChild(card);
+
+    // En la columna "Por Hacer", dividimos entre este sprint (arriba) y próximo/sin sprint (abajo)
+    if (colKey === "todo") {
+      const isCurrent = currentSprint && issue.milestone && issue.milestone.number === currentSprint.number;
+      if (isCurrent) {
+        todoCurrentSprint.push(card);
+      } else {
+        todoFutureOrBacklog.push(card);
+      }
+    } else {
+      if (columns[colKey]) {
+        columns[colKey].appendChild(card);
+      }
     }
   });
+
+  // Renderizar la columna Por Hacer con secciones Arriba (Sprint actual) y Abajo (Próximo / Sin Sprint)
+  if (columns.todo) {
+    const sprintTitle = currentSprint ? `🎯 ${escapeHtml(currentSprint.title)}` : "🎯 Sprint en curso";
+    
+    const currentSection = document.createElement("div");
+    currentSection.className = "kanban-section-group";
+    currentSection.innerHTML = `<div class="kanban-section-title">${sprintTitle} (${todoCurrentSprint.length})</div>`;
+    const currentCardsWrap = document.createElement("div");
+    currentCardsWrap.className = "kanban-section-cards";
+    if (todoCurrentSprint.length === 0) {
+      currentCardsWrap.innerHTML = `<div class="kanban-empty-section">No hay tareas pendientes en este sprint</div>`;
+    } else {
+      todoCurrentSprint.forEach(c => currentCardsWrap.appendChild(c));
+    }
+    currentSection.appendChild(currentCardsWrap);
+    columns.todo.appendChild(currentSection);
+
+    const futureSection = document.createElement("div");
+    futureSection.className = "kanban-section-group future-group";
+    futureSection.innerHTML = `<div class="kanban-section-title future-title">⏳ Próximo Sprint / Sin Sprint (${todoFutureOrBacklog.length})</div>`;
+    const futureCardsWrap = document.createElement("div");
+    futureCardsWrap.className = "kanban-section-cards";
+    if (todoFutureOrBacklog.length === 0) {
+      futureCardsWrap.innerHTML = `<div class="kanban-empty-section">No hay tareas para próximos sprints</div>`;
+    } else {
+      todoFutureOrBacklog.forEach(c => futureCardsWrap.appendChild(c));
+    }
+    futureSection.appendChild(futureCardsWrap);
+    columns.todo.appendChild(futureSection);
+  }
 
   document.getElementById("count-todo").textContent = counts.todo;
   document.getElementById("count-progress").textContent = counts.progress;
