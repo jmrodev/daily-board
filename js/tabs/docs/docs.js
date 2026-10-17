@@ -7,13 +7,14 @@ export async function loadDocs() {
   treeEl.innerHTML = `<li class="loading">Cargando guías desde /docs...</li>`;
 
   try {
-    state.docs = await githubRequest("/contents/docs");
+    state.docs = await githubRequest("/contents/docs").catch(() => []);
     treeEl.innerHTML = "";
 
-    const mdFiles = state.docs.filter(item => item.type === "file" && item.name.endsWith(".md"));
+    const mdFiles = (state.docs || []).filter(item => item.type === "file" && item.name.endsWith(".md"));
 
     if (mdFiles.length === 0) {
-      treeEl.innerHTML = `<li class="loading">No hay archivos Markdown en /docs</li>`;
+      treeEl.innerHTML = `<li class="loading">No hay archivos en /docs</li>`;
+      document.getElementById("docContent").innerHTML = `<p class="placeholder-text">Aún no hay documentos en /docs. Podés crear uno nuevo con "➕ Nuevo Doc".</p>`;
       return;
     }
 
