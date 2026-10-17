@@ -33,6 +33,32 @@ export async function loadKanban() {
 
     state.issues = issues;
     state.pullRequests = pulls;
+
+    // Obtener reviews de los PRs abiertos en paralelo (para saber cuántas aprobaciones tienen)
+    state.prReviews = {};
+    const openPulls = (pulls || []).filter(pr => pr.state === "open");
+    await Promise.all(
+      openPulls.map(async pr => {
+        try {
+          const reviews = await githubRequest(`/pulls/${pr.number}/reviews`);
+          // Solo revisiones APPROVED únicas por usuario (el último estado del revisor)
+          const latestByUser = {};
+          reviews.forEach(r => {
+            if (r.user && r.user.login) {
+              latestByUser[r.user.login] = r.state;
+            }
+          });
+          const approvedCount = Object.values(latestByUser).filter(st => st === "APPROVED").length;
+          state.prReviews[pr.number] = {
+            approvedCount,
+            totalRequired: 2
+          };
+        } catch {
+          state.prReviews[pr.number] = { approvedCount: 0, totalRequired: 2 };
+        }
+      })
+    );
+
     updateAssigneeFilterOptions();
     renderKanban();
   } catch (err) {
@@ -133,8 +159,14 @@ export function renderKanban() {
     let prBadgeHtml = "";
     if (linkedPR) {
       const isMerged = linkedPR.merged_at || linkedPR.state === "closed";
-      const prStateLabel = isMerged ? "✓ Aceptado / Merged" : "⏳ En revisión";
+      let prStateLabel = isMerged ? "✓ Aceptado / Merged" : "⏳ En revisión";
       const prClass = isMerged ? "merged" : "open";
+
+      if (!isMerged && state.prReviews && state.prReviews[linkedPR.number]) {
+        const { approvedCount, totalRequired } = state.prReviews[linkedPR.number];
+        prStateLabel = `⏳ ${approvedCount}/${totalRequired} aprobados`;
+      }
+
       prBadgeHtml = `
         <a href="${linkedPR.html_url}" target="_blank" rel="noopener" class="pr-badge ${prClass}" title="Ver Pull Request #${linkedPR.number} en GitHub">
           🔀 PR #${linkedPR.number} (${prStateLabel})
@@ -210,9 +242,9 @@ function onDragEnd() {
 export async function handleDrop(e, targetCol) {
   e.preventDefault();
 
-  // Regla estricta: Nadie puede arrastrar manualmente a Listo
+  // Regla estricta 1: Nadie puede arrastrar manualmente a Listo
   if (targetCol === "done") {
-    alert("🔒 La columna 'Listo' está protegida:\nSolo se completa automáticamente cuando el docente o administrador acepta y fusiona el Pull Request en GitHub.");
+    alert("🔒 La columna 'Listo' está protegida:\nSolo se completa automáticamente cuando se aceptan los 2 reviews y se fusiona el Pull Request en GitHub.");
     return;
   }
 
@@ -228,35 +260,44 @@ export async function handleDrop(e, targetCol) {
   const currentCol = classifyColumn(issue);
   if (currentCol === targetCol) return;
 
+  // Regla estricta 2: No pasar a En Curso si no tiene responsable asignado
+  let autoAssigned = false;
+  if (targetCol === "progress" && !issue.assignee) {
+    if (state.user && state.user.username) {
+      const confirmAssign = confirm(`⚠️ Regla de flujo:\nPara pasar una tarea a 'En Curso' debe tener un responsable.\n¿Querés asignártela a vos (@${state.user.username}) ahora?`);
+      if (!confirmAssign) return;
+      issue.assignee = { login: state.user.username };
+      autoAssigned = true;
+    } else {
+      alert("⚠️ Regla de flujo: No podés pasar una tarea a 'En Curso' sin antes tener un responsable asignado.");
+      return;
+    }
+  }
+
   // Actualización optimista en memoria (solo para todo, progress o blocked)
   issue.state = "open";
   issue.labels = (issue.labels || []).filter(l => {
     const name = typeof l === "string" ? l : l.name;
     return !Object.values(COLUMN_LABELS).includes(name);
   });
-    if (COLUMN_LABELS[targetCol]) {
-      issue.labels.push({ name: COLUMN_LABELS[targetCol], color: "30363d" });
-    }
+  if (COLUMN_LABELS[targetCol]) {
+    issue.labels.push({ name: COLUMN_LABELS[targetCol], color: "30363d" });
   }
 
   renderKanban();
 
   // Sincronización remota con GitHub
   try {
-    if (targetCol === "done") {
-      await githubRequest(`/issues/${issueNumber}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state: "closed" })
-      });
-    } else {
-      const labelNames = (issue.labels || []).map(l => (typeof l === "string" ? l : l.name));
-      await githubRequest(`/issues/${issueNumber}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state: "open", labels: labelNames })
-      });
+    const labelNames = (issue.labels || []).map(l => (typeof l === "string" ? l : l.name));
+    const patchPayload = { state: "open", labels: labelNames };
+    if (autoAssigned) {
+      patchPayload.assignees = [state.user.username];
     }
+    await githubRequest(`/issues/${issueNumber}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patchPayload)
+    });
   } catch (err) {
     alert("Error al sincronizar con GitHub: " + err.message);
     loadKanban(); // Revertir con el estado remoto
