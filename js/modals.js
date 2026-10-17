@@ -1,23 +1,62 @@
-// js/modals.js - Manejo de diálogos y envíos hacia GitHub
-import { state, saveConfig, clearToken, COLUMN_LABELS } from "./state.js";
+// js/modals.js - Manejo de diálogos, autenticación y envíos
+import { state, saveConfig, clearUserSession, COLUMN_LABELS } from "./state.js";
 import { githubRequest } from "./api.js";
+import { iniciarLoginGitHub, cancelarLogin } from "./auth.js";
 import { loadKanban, renderKanban } from "./tabs/kanban.js";
 import { loadDocs } from "./tabs/docs.js";
 
 export function initModals(onAuthChanged) {
-  // Modal Auth
+  // Click en badge de estado de auth
   document.getElementById("authStatus").addEventListener("click", openAuthModal);
+
+  // Botón iniciar flujo OAuth Device
+  document.getElementById("btnIniciarOAuth").addEventListener("click", () => {
+    const viewDefault = document.getElementById("authViewDefault");
+    const viewDevice = document.getElementById("authViewDevice");
+
+    viewDefault.style.display = "none";
+    viewDevice.style.display = "block";
+
+    iniciarLoginGitHub(
+      ({ userCode, verificationUri }) => {
+        document.getElementById("deviceUserCode").textContent = userCode;
+        const linkBtn = document.getElementById("btnAbrirGitHubDevice");
+        linkBtn.href = verificationUri;
+      },
+      (userProfile) => {
+        viewDevice.style.display = "none";
+        viewDefault.style.display = "block";
+        document.getElementById("authModal").close();
+        onAuthChanged();
+      },
+      (errMsg) => {
+        alert("Error de autenticación: " + errMsg);
+        viewDevice.style.display = "none";
+        viewDefault.style.display = "block";
+      }
+    );
+  });
+
+  // Cancelar Device flow
+  document.getElementById("btnCancelarDevice").addEventListener("click", () => {
+    cancelarLogin();
+    document.getElementById("authViewDevice").style.display = "none";
+    document.getElementById("authViewDefault").style.display = "block";
+  });
+
+  // Guardar configuración manual de repo o PAT de emergencia
   document.getElementById("authModalForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const repoSlug = document.getElementById("cfgRepoSlug").value.trim();
-    const token = document.getElementById("cfgUserToken").value.trim();
-    saveConfig(repoSlug, token);
+    const manualToken = document.getElementById("cfgUserToken").value.trim();
+    saveConfig(repoSlug, manualToken || undefined);
     document.getElementById("authModal").close();
     onAuthChanged();
   });
 
+  // Botón Cerrar Sesión
   document.getElementById("btnDisconnectAuth").addEventListener("click", () => {
-    clearToken();
+    clearUserSession();
     document.getElementById("authModal").close();
     onAuthChanged();
   });
@@ -79,12 +118,14 @@ export function initModals(onAuthChanged) {
 export function openAuthModal() {
   document.getElementById("cfgRepoSlug").value = state.config.repoSlug;
   document.getElementById("cfgUserToken").value = state.config.token;
+  document.getElementById("authViewDevice").style.display = "none";
+  document.getElementById("authViewDefault").style.display = "block";
   document.getElementById("authModal").showModal();
 }
 
 export function openNewIssueModal() {
   if (!state.config.token) {
-    alert("Para crear un issue en GitHub necesitás conectar tu Token.");
+    alert("Para crear un issue en GitHub primero iniciá sesión con GitHub.");
     openAuthModal();
     return;
   }
@@ -93,7 +134,7 @@ export function openNewIssueModal() {
 
 export function openNewDocModal() {
   if (!state.config.token) {
-    alert("Para crear un documento en GitHub necesitás conectar tu Token.");
+    alert("Para crear un documento en GitHub primero iniciá sesión con GitHub.");
     openAuthModal();
     return;
   }

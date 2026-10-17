@@ -33,17 +33,14 @@ function setupNavigation() {
 export function switchTab(tabKey) {
   state.currentTab = tabKey;
 
-  // Actualizar botones de navegación
   document.querySelectorAll(".nav-tab").forEach(tab => {
     tab.classList.toggle("active", tab.dataset.tab === tabKey);
   });
 
-  // Mostrar contenedor correspondiente
   document.querySelectorAll(".tab-content").forEach(content => {
     content.classList.toggle("active", content.id === `tab-${tabKey}`);
   });
 
-  // Ajustar botón de acción rápida
   const btnAccion = document.getElementById("btnNuevaAccion");
   if (tabKey === "kanban") {
     btnAccion.style.display = "inline-block";
@@ -81,12 +78,18 @@ function renderAuthBadge() {
   const dot = document.getElementById("authDot");
   const label = document.getElementById("authLabel");
 
-  if (state.config.token) {
+  if (state.user && state.user.username) {
     dot.classList.add("active");
-    label.textContent = "Conectado (Lectura & Escritura)";
+    label.innerHTML = `
+      <img src="${state.user.avatarUrl}" width="16" height="16" style="border-radius: 50%; vertical-align: middle; margin-right: 4px;">
+      @${state.user.username}
+    `;
+  } else if (state.config.token) {
+    dot.classList.add("active");
+    label.textContent = "Conectado";
   } else {
     dot.classList.remove("active");
-    label.textContent = "Modo Lectura (Público)";
+    label.textContent = "Iniciar sesión";
   }
 }
 
