@@ -43,3 +43,40 @@ export function showToast(message, type = "info", duration = 4000) {
     }
   }, duration);
 }
+
+export function showConfirmDialog({ title = "Confirmación", message = "¿Deseas continuar?" }) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("confirmModal");
+    const titleEl = document.getElementById("confirmModalTitle");
+    const msgEl = document.getElementById("confirmModalMessage");
+    const btnOk = document.getElementById("btnConfirmOk");
+    const btnCancel = document.getElementById("btnConfirmCancel");
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+
+    const cleanup = () => {
+      btnOk.removeEventListener("click", onOk);
+      btnCancel.removeEventListener("click", onCancel);
+      modal.removeEventListener("close", onCancel);
+    };
+
+    const onOk = () => {
+      cleanup();
+      modal.close();
+      resolve(true);
+    };
+
+    const onCancel = () => {
+      cleanup();
+      modal.close();
+      resolve(false);
+    };
+
+    btnOk.addEventListener("click", onOk);
+    btnCancel.addEventListener("click", onCancel);
+    modal.addEventListener("close", onCancel, { once: true });
+
+    modal.showModal();
+  });
+}

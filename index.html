@@ -331,6 +331,18 @@
     </form>
   </dialog>
 
+  <!-- MODAL: CONFIRMACIÓN DE ASIGNACIÓN -->
+  <dialog id="confirmModal" class="modal">
+    <div style="padding: 24px;">
+      <h3 id="confirmModalTitle" style="font-size: 1.15rem; margin-bottom: 8px;">⚠️ Regla de flujo</h3>
+      <p id="confirmModalMessage" style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 20px; line-height: 1.5;"></p>
+      <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" id="btnConfirmCancel" class="btn secondary">Cancelar</button>
+        <button type="button" id="btnConfirmOk" class="btn primary">Asignarme y continuar</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Carga del Módulo Principal -->
   <script type="module" src="js/main.js"></script>
 </body>

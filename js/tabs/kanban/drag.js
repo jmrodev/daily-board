@@ -1,7 +1,6 @@
-// js/tabs/kanban/drag.js - Drag and drop, reglas de negocio y transiciones de estado
 import { state, COLUMN_LABELS } from "../../state.js";
 import { githubRequest } from "../../api.js";
-import { showToast } from "../../toast.js";
+import { showToast, showConfirmDialog } from "../../toast.js";
 import { classifyColumn, renderKanban, loadKanban } from "./kanban.js";
 
 let draggedCard = null;
@@ -44,8 +43,11 @@ export async function handleDrop(e, targetCol) {
   let autoAssigned = false;
   if (targetCol === "progress" && !issue.assignee) {
     if (state.user && state.user.username) {
-      const confirmAssign = confirm(`⚠️ Regla de flujo:\nPara pasar una tarea a 'En Curso' debe tener un responsable.\n¿Querés asignártela a vos (@${state.user.username}) ahora?`);
-      if (!confirmAssign) return;
+      const confirmed = await showConfirmDialog({
+        title: "⚠️ Asignación requerida",
+        message: `Para pasar una tarea a 'En Curso' debe tener un responsable asignado.\n\n¿Querés asignártela a vos (@${state.user.username}) ahora?`
+      });
+      if (!confirmed) return;
       issue.assignee = { login: state.user.username };
       autoAssigned = true;
     } else {
