@@ -144,7 +144,9 @@ export function renderKanban() {
           👤 ${assigneeText}
         </span>
         ${assignBtnHtml}
-        <span>💬 ${issue.comments}</span>
+        <button class="btn-comments-trigger" title="Ver y agregar comentarios" onclick="event.stopPropagation(); window.openIssueComments(${issue.number})">
+          💬 ${issue.comments}
+        </button>
       </div>
       ${labelsHtml ? `<div class="card-labels">${labelsHtml}</div>` : ""}
     `;

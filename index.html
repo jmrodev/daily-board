@@ -261,6 +261,30 @@
     </form>
   </dialog>
 
+  <!-- MODAL: COMENTARIOS Y DISCUSIÓN DEL ISSUE -->
+  <dialog id="issueCommentsModal" class="modal modern-modal">
+    <div class="modal-header">
+      <div>
+        <h3 id="commentsModalTitle">💬 Discusión del Issue</h3>
+        <p class="modal-subtitle" id="commentsModalSubtitle">Comentarios sincronizados con GitHub</p>
+      </div>
+      <button type="button" class="btn-close" onclick="document.getElementById('issueCommentsModal').close()">✕</button>
+    </div>
+
+    <div id="commentsTimeline" class="comments-timeline">
+      <p class="loading">Cargando comentarios...</p>
+    </div>
+
+    <form id="newCommentForm" class="new-comment-form">
+      <input type="hidden" id="commentIssueNumber">
+      <textarea id="commentBodyInput" rows="3" required placeholder="Escribí un comentario para el equipo (soporta Markdown)..."></textarea>
+      <div class="modal-footer" style="padding-top: 10px; margin-top: 10px;">
+        <button type="button" class="btn secondary" onclick="document.getElementById('issueCommentsModal').close()">Cerrar</button>
+        <button type="submit" class="btn primary" id="btnSendComment">💬 Enviar a GitHub</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- MODAL: NUEVA TAREA -->
   <dialog id="newIssueModal" class="modal">
     <form id="newIssueForm" method="dialog">

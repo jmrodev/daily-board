@@ -144,16 +144,81 @@ export function initModals(onAuthChanged) {
         body: JSON.stringify(bodyPayload)
       });
 
-      document.getElementById("newDailyModal").close();
-      document.getElementById("dailyDone").value = "";
-      document.getElementById("dailyPlan").value = "";
-      document.getElementById("dailyBlocker").value = "";
-      loadDailies();
-    } catch (err) {
-      alert("Error al registrar daily: " + err.message);
-    }
-  });
+  // Enviar Nuevo Comentario en el Issue
+  const commentForm = document.getElementById("newCommentForm");
+  if (commentForm) {
+    commentForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!state.config.token) {
+        alert("Para comentar necesitás conectar tu token.");
+        openAuthModal();
+        return;
+      }
+
+      const issueNum = document.getElementById("commentIssueNumber").value;
+      const body = document.getElementById("commentBodyInput").value.trim();
+      const btn = document.getElementById("btnSendComment");
+      btn.disabled = true;
+      btn.textContent = "Enviando...";
+
+      try {
+        await githubRequest(`/issues/${issueNum}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body })
+        });
+        document.getElementById("commentBodyInput").value = "";
+        window.openIssueComments(issueNum); // Recargar comentarios
+        loadKanban(); // Actualizar contador en la tarjeta
+      } catch (err) {
+        alert("Error al enviar comentario: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "💬 Enviar a GitHub";
+      }
+    });
+  }
 }
+
+// Función global para abrir modal de comentarios de un issue
+window.openIssueComments = async function (issueNumber) {
+  const issue = state.issues.find(i => i.number === parseInt(issueNumber, 10));
+  const titleEl = document.getElementById("commentsModalTitle");
+  const subEl = document.getElementById("commentsModalSubtitle");
+  const timeline = document.getElementById("commentsTimeline");
+  document.getElementById("commentIssueNumber").value = issueNumber;
+
+  if (issue) {
+    titleEl.textContent = `💬 Issue #${issue.number}: ${issue.title}`;
+    subEl.textContent = `Abierto por @${issue.user.login} · ${issue.comments} comentarios`;
+  }
+
+  timeline.innerHTML = `<p class="loading">Cargando comentarios desde GitHub...</p>`;
+  document.getElementById("issueCommentsModal").showModal();
+
+  try {
+    const comments = await githubRequest(`/issues/${issueNumber}/comments`);
+    if (!comments.length) {
+      timeline.innerHTML = `<p class="placeholder-text">Aún no hay comentarios en este issue. ¡Sé el primero en comentar!</p>`;
+      return;
+    }
+
+    timeline.innerHTML = comments.map(c => `
+      <div class="comment-bubble">
+        <div class="comment-bubble-head">
+          <img src="${c.user.avatar_url}" width="20" height="20" style="border-radius: 50%;">
+          <strong>@${escapeHtml(c.user.login)}</strong>
+          <span style="color: var(--text-muted); font-size: 0.75rem;">${new Date(c.created_at).toLocaleString()}</span>
+        </div>
+        <div class="comment-bubble-body markdown-body">
+          ${window.marked ? window.marked.parse(c.body) : escapeHtml(c.body)}
+        </div>
+      </div>
+    `).join("");
+  } catch (err) {
+    timeline.innerHTML = `<p style="color: var(--blocked);">Error al cargar comentarios: ${err.message}</p>`;
+  }
+};
 
 export function openAuthModal() {
   document.getElementById("cfgRepoSlug").value = state.config.repoSlug;
@@ -185,7 +250,6 @@ export function openNewDailyModal() {
     openAuthModal();
     return;
   }
-  // Fecha de hoy por defecto en formato YYYY-MM-DD
   const hoy = new Date().toISOString().split("T")[0];
   document.getElementById("dailyDateInput").value = hoy;
   document.getElementById("newDailyModal").showModal();
