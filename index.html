@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom Daily & Kanban (GitHub Native)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="icon">📋</span>
+      <h1>Classroom Board</h1>
+    </div>
+    <div class="header-actions">
+      <div id="repoInfo" class="repo-info" style="display: none;">
+        <span id="repoNameBadge" class="badge"></span>
+      </div>
+      <button id="configBtn" class="btn secondary" onclick="toggleConfig()">⚙️ Configuración</button>
+      <button class="btn primary" onclick="abrirModalNuevoIssue()">➕ Nueva Tarea</button>
+    </div>
+  </header>
+
+  <!-- Modal / Panel de Configuración -->
+  <section id="configPanel" class="config-panel">
+    <h3>Configuración de Conexión a GitHub</h3>
+    <p>Ingresá los datos del repositorio de la clase y tu Personal Access Token (PAT).</p>
+    <div class="form-grid">
+      <label>
+        Dueño / Organización:
+        <input type="text" id="cfgOwner" placeholder="ej: jmrodev">
+      </label>
+      <label>
+        Repositorio:
+        <input type="text" id="cfgRepo" placeholder="ej: daily-scrum-serverless">
+      </label>
+      <label class="full-width">
+        GitHub Personal Access Token (PAT):
+        <input type="password" id="cfgToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+        <small>Se almacena solo localmente en tu navegador. Necesita permisos de <code>repo</code>.</small>
+      </label>
+    </div>
+    <div class="config-buttons">
+      <button class="btn primary" onclick="guardarConfig()">Guardar y Conectar</button>
+      <button class="btn secondary" onclick="toggleConfig()">Cerrar</button>
+    </div>
+  </section>
+
+  <!-- Tablero Kanban -->
+  <main class="board-container">
+    <!-- Columna: Backlog / To Do -->
+    <div class="kanban-column" id="col-todo" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'todo')">
+      <div class="col-header todo">
+        <h2>📌 Por Hacer</h2>
+        <span class="count" id="count-todo">0</span>
+      </div>
+      <div class="cards-list" id="list-todo"></div>
+    </div>
+
+    <!-- Columna: In Progress -->
+    <div class="kanban-column" id="col-progress" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'progress')">
+      <div class="col-header progress">
+        <h2>⚡ En Curso</h2>
+        <span class="count" id="count-progress">0</span>
+      </div>
+      <div class="cards-list" id="list-progress"></div>
+    </div>
+
+    <!-- Columna: Blocked -->
+    <div class="kanban-column" id="col-blocked" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'blocked')">
+      <div class="col-header blocked">
+        <h2>🚧 Bloqueado</h2>
+        <span class="count" id="count-blocked">0</span>
+      </div>
+      <div class="cards-list" id="list-blocked"></div>
+    </div>
+
+    <!-- Columna: Done -->
+    <div class="kanban-column" id="col-done" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'done')">
+      <div class="col-header done">
+        <h2>✅ Listo</h2>
+        <span class="count" id="count-done">0</span>
+      </div>
+      <div class="cards-list" id="list-done"></div>
+    </div>
+  </main>
+
+  <!-- Modal Crear Tarea -->
+  <dialog id="newIssueModal" class="modal">
+    <form method="dialog" onsubmit="crearNuevoIssue(event)">
+      <h3>Crear Nueva Tarea en GitHub</h3>
+      <label>
+        Título del Issue:
+        <input type="text" id="newTitle" required placeholder="ej: Implementar formulario de login">
+      </label>
+      <label>
+        Descripción (Markdown):
+        <textarea id="newBody" rows="4" placeholder="Qué se va a hacer, criterios de aceptación..."></textarea>
+      </label>
+      <label>
+        Columna inicial:
+        <select id="newColumn">
+          <option value="todo">Por Hacer</option>
+          <option value="progress">En Curso</option>
+          <option value="blocked">Bloqueado</option>
+        </select>
+      </label>
+      <div class="modal-buttons">
+        <button type="button" class="btn secondary" onclick="cerrarModalNuevoIssue()">Cancelar</button>
+        <button type="submit" class="btn primary">Crear Issue en GitHub</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
