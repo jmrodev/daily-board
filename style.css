@@ -580,8 +580,10 @@ dialog.modal {
   color: var(--text-main);
   max-width: 580px;
   width: 94%;
+  max-height: 90vh;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  overflow: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 dialog.modal::backdrop {
@@ -593,6 +595,10 @@ dialog.modal form {
   padding: 24px;
   display: flex;
   flex-direction: column;
+}
+
+body:has(dialog[open]) {
+  overflow: hidden;
 }
 
 .modal-header {
