@@ -3,19 +3,19 @@ import { state, COLUMN_LABELS, escapeHtml } from "../../state.js";
 import { onDragStart, onDragEnd } from "./drag.js";
 
 export function createKanbanCard(issue, colKey) {
-  // Buscar Pull Requests vinculados que mencionen #numero
+  // Buscar Pull Requests vinculados que mencionen #numero o usar el mismo si es standalone
   const issueRef = `#${issue.number}`;
-  const linkedPR = (state.pullRequests || []).find(pr =>
+  const linkedPR = issue.isStandalonePR ? issue : (state.pullRequests || []).find(pr =>
     (pr.body || "").includes(issueRef) || (pr.title || "").includes(issueRef)
   );
 
   const card = document.createElement("div");
   card.className = "task-card";
-  // Si la tarjeta ya está en Listo (cerrada), no se arrastra
-  card.draggable = Boolean(state.config.token) && colKey !== "done";
+  // Si la tarjeta ya está en Listo (cerrada) o es PR standalone, controlar drag
+  card.draggable = Boolean(state.config.token) && colKey !== "done" && !issue.isStandalonePR;
   card.dataset.number = issue.number;
 
-  if (state.config.token && colKey !== "done") {
+  if (state.config.token && colKey !== "done" && !issue.isStandalonePR) {
     card.addEventListener("dragstart", onDragStart);
     card.addEventListener("dragend", onDragEnd);
   }
@@ -50,7 +50,7 @@ export function createKanbanCard(issue, colKey) {
     prBadgeHtml = `
       <div class="pr-badge-container">
         <a href="${linkedPR.html_url}" target="_blank" rel="noopener" class="pr-badge ${prClass}" title="Ver Pull Request #${linkedPR.number} en GitHub">
-          🔀 PR #${linkedPR.number} (${prStateLabel})
+          🔀 ${issue.isStandalonePR ? 'Pull Request' : 'PR'} #${linkedPR.number} (${prStateLabel})
         </a>
         ${reviewersHtml}
       </div>

@@ -5,17 +5,24 @@ import { showToast } from "../../toast.js";
 import { createKanbanCard } from "./card.js";
 
 export function classifyColumn(issue) {
-  // 1. Si está cerrado en GitHub, es Done (PR fusionado o completado)
+  // 1. Si está cerrado en GitHub, es Done (PR fusionado o issue cerrado)
   if (issue.state === "closed") return "done";
 
-  // 2. Si tiene un Pull Request abierto vinculado, va automáticamente a En Curso
+  // 2. Si es un PR independiente abierto, está en progreso por defecto (o bloqueado si tiene etiqueta)
+  if (issue.isStandalonePR) {
+    const labelNames = (issue.labels || []).map(l => (typeof l === "string" ? l : l.name).toLowerCase());
+    if (labelNames.includes(COLUMN_LABELS.blocked)) return "blocked";
+    return "progress";
+  }
+
+  // 3. Si tiene un Pull Request abierto vinculado, va automáticamente a En Curso
   const issueRef = `#${issue.number}`;
   const hasOpenPR = (state.pullRequests || []).some(pr =>
     pr.state === "open" && ((pr.body || "").includes(issueRef) || (pr.title || "").includes(issueRef))
   );
   if (hasOpenPR) return "progress";
 
-  // 3. Revisión por etiquetas estándar
+  // 4. Revisión por etiquetas estándar
   const labelNames = (issue.labels || []).map(l => (typeof l === "string" ? l : l.name).toLowerCase());
   if (labelNames.includes(COLUMN_LABELS.blocked)) return "blocked";
   if (labelNames.includes(COLUMN_LABELS.progress)) return "progress";
@@ -127,9 +134,24 @@ export function renderKanban() {
   const todoCurrentSprint = [];
   const todoFutureOrBacklog = [];
 
-  state.issues.forEach(issue => {
-    if (issue.pull_request) return; // Filtrar PRs directos en issues
+  // Combinar issues con pull requests que no estén ya vinculados a un issue
+  const allBoardItems = [...state.issues.filter(i => !i.pull_request)];
+  
+  // Agregar PRs que no estén vinculados como issue
+  (state.pullRequests || []).forEach(pr => {
+    const isLinkedToAnyIssue = state.issues.some(i => {
+      const ref = `#${i.number}`;
+      return (pr.body || "").includes(ref) || (pr.title || "").includes(ref);
+    });
+    if (!isLinkedToAnyIssue) {
+      allBoardItems.push({
+        ...pr,
+        isStandalonePR: true
+      });
+    }
+  });
 
+  allBoardItems.forEach(issue => {
     const colKey = classifyColumn(issue);
     counts[colKey]++;
 
@@ -137,14 +159,16 @@ export function renderKanban() {
     if (filterAssignee === "mine") {
       if (currentUser) {
         const isAssignedToMe = issue.assignee?.login === currentUser ||
-          (issue.assignees || []).some(a => a.login === currentUser);
+          (issue.assignees || []).some(a => a.login === currentUser) ||
+          issue.user?.login === currentUser;
         if (!isAssignedToMe) return;
       }
     } else if (filterAssignee === "unassigned") {
       if (issue.assignee) return;
     } else if (filterAssignee && filterAssignee !== "all") {
       const hasAssignee = issue.assignee?.login === filterAssignee ||
-        (issue.assignees || []).some(a => a.login === filterAssignee);
+        (issue.assignees || []).some(a => a.login === filterAssignee) ||
+        issue.user?.login === filterAssignee;
       if (!hasAssignee) return;
     }
 

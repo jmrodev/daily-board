@@ -9,22 +9,25 @@ export async function loadActivity() {
   if (!container) return;
   container.innerHTML = `<div class="loading">Cargando commits recientes...</div>`;
 
-  setupBranchFilter();
-
   try {
-    // Si se pide una rama específica
+    // 1. Obtener todas las ramas del repositorio (hasta 100)
+    const branches = await githubRequest("/branches?per_page=100").catch(() => [{ name: "develop" }, { name: "main" }]);
+    
+    // Rellenar dinámicamente el selector con todas las ramas reales del repositorio
+    updateBranchSelectOptions(branches);
+
+    // 2. Si se pide una rama específica
     if (selectedBranch !== "all") {
-      const commits = await githubRequest(`/commits?sha=${encodeURIComponent(selectedBranch)}&per_page=30`);
+      const commits = await githubRequest(`/commits?sha=${encodeURIComponent(selectedBranch)}&per_page=35`);
       renderCommitsList(commits, container);
       return;
     }
 
-    // Si se piden "Todas las ramas", consultamos las ramas existentes del repo
-    const branches = await githubRequest("/branches").catch(() => [{ name: "gh-pages" }, { name: "main" }]);
-    
-    // Obtener los commits de cada rama en paralelo
+    // 3. Si se piden "Todas las ramas", consultamos los commits de las ramas principales y activas en paralelo
+    // Para no saturar límites de rate limit en repos con 50+ ramas, tomamos las más relevantes y recientes
+    const priorityBranches = branches.slice(0, 15);
     const branchCommitsList = await Promise.all(
-      branches.map(async b => {
+      priorityBranches.map(async b => {
         try {
           const list = await githubRequest(`/commits?sha=${encodeURIComponent(b.name)}&per_page=15`);
           return list.map(c => ({ ...c, branchName: b.name }));
@@ -34,11 +37,10 @@ export async function loadActivity() {
       })
     );
 
-    // Unificar y desduplicar commits por SHA (puede haber commits compartidos entre ramas)
+    // Unificar y desduplicar commits por SHA
     const commitMap = new Map();
     branchCommitsList.flat().forEach(c => {
       if (commitMap.has(c.sha)) {
-        // Si ya está, agregarle la rama adicional a su badge
         const existing = commitMap.get(c.sha);
         if (existing.branches && !existing.branches.includes(c.branchName)) {
           existing.branches.push(c.branchName);
@@ -60,17 +62,26 @@ export async function loadActivity() {
       return dateB - dateA;
     });
 
-    renderCommitsList(unifiedCommits.slice(0, 30), container);
+    renderCommitsList(unifiedCommits.slice(0, 40), container);
   } catch (err) {
     container.innerHTML = `<div class="loading">Error al cargar actividad: ${err.message}</div>`;
   }
 }
 
-function setupBranchFilter() {
+function updateBranchSelectOptions(branches) {
   const select = document.getElementById("selectActivityBranch");
   if (!select) return;
 
-  // Evitar vincular listeners repetidos
+  const currentVal = selectedBranch;
+  let optionsHtml = `<option value="all">🌐 Todas las ramas (Global)</option>`;
+
+  branches.forEach(b => {
+    optionsHtml += `<option value="${escapeHtml(b.name)}">🌿 ${escapeHtml(b.name)}</option>`;
+  });
+
+  select.innerHTML = optionsHtml;
+  select.value = branches.some(b => b.name === currentVal) ? currentVal : "all";
+
   if (!select.dataset.listenerBound) {
     select.dataset.listenerBound = "true";
     select.addEventListener("change", (e) => {
@@ -82,7 +93,7 @@ function setupBranchFilter() {
 
 function renderCommitsList(commits, container) {
   if (!commits || commits.length === 0) {
-    container.innerHTML = `<div class="loading">No se encontraron commits registrados.</div>`;
+    container.innerHTML = `<div class="loading">No se encontraron commits registrados en esta rama.</div>`;
     return;
   }
 
@@ -96,7 +107,7 @@ function renderCommitsList(commits, container) {
     });
 
     const branchesBadges = (c.branches || [selectedBranch !== "all" ? selectedBranch : ""]).filter(Boolean).map(b => `
-      <span class="commit-branch-tag ${b === "main" ? "main-tag" : "pages-tag"}">🌿 ${escapeHtml(b)}</span>
+      <span class="commit-branch-tag ${b === "main" || b === "develop" ? "main-tag" : "pages-tag"}">🌿 ${escapeHtml(b)}</span>
     `).join("");
 
     return `
