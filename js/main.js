@@ -31,24 +31,19 @@ function setupNavigation() {
     if (state.currentTab === "dailies") openNewDailyModal();
   });
 
-  // Filtros del Tablero Kanban
-  const btnMyTasks = document.getElementById("btnFilterMyTasks");
-  if (btnMyTasks) {
-    btnMyTasks.addEventListener("click", () => {
-      if (!state.user) {
+  // Filtro unificado de Usuario (Todos / Mis tareas / Sin asignar / Compañeros)
+  const selectUser = document.getElementById("selectFilterUser");
+  if (selectUser) {
+    selectUser.addEventListener("change", (e) => {
+      const val = e.target.value;
+      if (val === "mine" && !state.user) {
         alert("Iniciá sesión primero para ver tus tareas.");
-        return;
+        import("./modals.js").then(m => m.openAuthModal());
+        selectUser.value = "all";
+        state.filters.assignee = "all";
+      } else {
+        state.filters.assignee = val;
       }
-      state.filters.onlyMine = !state.filters.onlyMine;
-      btnMyTasks.classList.toggle("active", state.filters.onlyMine);
-      import("./tabs/kanban.js").then(m => m.renderKanban());
-    });
-  }
-
-  const selectAssignee = document.getElementById("selectFilterAssignee");
-  if (selectAssignee) {
-    selectAssignee.addEventListener("change", (e) => {
-      state.filters.assignee = e.target.value;
       import("./tabs/kanban.js").then(m => m.renderKanban());
     });
   }

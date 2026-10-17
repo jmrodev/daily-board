@@ -191,24 +191,23 @@ body {
   gap: 12px;
 }
 
-#btnFilterMyTasks.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-
-.select-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-}
-
-.select-wrapper select {
-  padding: 4px 8px;
-  font-size: 0.82rem;
+.btn-select-filter {
+  background: var(--surface-hover);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
   border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.btn-select-filter:hover,
+.btn-select-filter:focus {
+  border-color: var(--accent);
+  background: #30363d;
 }
 
 .search-wrapper input {

@@ -31,7 +31,7 @@ export async function loadKanban() {
 }
 
 function updateAssigneeFilterOptions() {
-  const select = document.getElementById("selectFilterAssignee");
+  const select = document.getElementById("selectFilterUser");
   if (!select) return;
 
   // Extraer usuarios únicos asignados
@@ -41,11 +41,16 @@ function updateAssigneeFilterOptions() {
     (i.assignees || []).forEach(a => assignees.add(a.login));
   });
 
-  const currentVal = select.value;
+  const currentVal = select.value || "all";
+  const myUser = state.user ? `@${state.user.username}` : "";
+
   select.innerHTML = `
-    <option value="all">Todos los miembros</option>
-    <option value="unassigned">Sin asignar</option>
-    ${Array.from(assignees).sort().map(user => `<option value="${escapeHtml(user)}">@${escapeHtml(user)}</option>`).join("")}
+    <option value="all">👥 Todos los miembros</option>
+    <option value="mine">👤 Mis tareas ${myUser ? `(${myUser})` : ""}</option>
+    <option value="unassigned">⚪ Sin asignar</option>
+    <optgroup label="Compañeros">
+      ${Array.from(assignees).sort().map(user => `<option value="${escapeHtml(user)}">@${escapeHtml(user)}</option>`).join("")}
+    </optgroup>
   `;
   select.value = currentVal;
 }
@@ -72,15 +77,16 @@ export function renderKanban() {
     const colKey = classifyColumn(issue);
     counts[colKey]++;
 
-    // Aplicar Filtros
-    if (onlyMine && currentUser) {
-      const isAssignedToMe = issue.assignee?.login === currentUser ||
-        (issue.assignees || []).some(a => a.login === currentUser);
-      if (!isAssignedToMe) return;
-    }
-
-    if (filterAssignee === "unassigned" && issue.assignee) return;
-    if (filterAssignee !== "all" && filterAssignee !== "unassigned") {
+    // Aplicar Filtro de Usuario
+    if (filterAssignee === "mine") {
+      if (currentUser) {
+        const isAssignedToMe = issue.assignee?.login === currentUser ||
+          (issue.assignees || []).some(a => a.login === currentUser);
+        if (!isAssignedToMe) return;
+      }
+    } else if (filterAssignee === "unassigned") {
+      if (issue.assignee) return;
+    } else if (filterAssignee && filterAssignee !== "all") {
       const hasAssignee = issue.assignee?.login === filterAssignee ||
         (issue.assignees || []).some(a => a.login === filterAssignee);
       if (!hasAssignee) return;
