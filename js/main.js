@@ -2,10 +2,10 @@
 import { state } from "./state.js";
 import { loadKanban, renderKanban } from "./tabs/kanban/kanban.js";
 import { handleDrop } from "./tabs/kanban/drag.js";
-import { loadDocs } from "./tabs/docs.js";
-import { loadDailies } from "./tabs/dailies.js";
-import { loadSprints } from "./tabs/sprints.js";
-import { loadActivity } from "./tabs/activity.js";
+import { loadDocs } from "./tabs/docs/docs.js";
+import { loadDailies } from "./tabs/dailies/dailies.js";
+import { loadSprints } from "./tabs/sprints/sprints.js";
+import { loadActivity } from "./tabs/activity/activity.js";
 import { initModals, openNewIssueModal, openNewDocModal, openNewDailyModal } from "./modals.js";
 import { showToast } from "./toast.js";
 
@@ -116,13 +116,14 @@ function setupDragAndDrop() {
       if (!target) return;
       target.addEventListener("dragover", (e) => {
         e.preventDefault();
-        e.dataTransfer.dropEffect = key === "done" ? "none" : "move";
+        e.dataTransfer.dropEffect = "move";
         if (colEl) colEl.classList.add("drag-over");
       });
       target.addEventListener("dragleave", () => {
         if (colEl) colEl.classList.remove("drag-over");
       });
       target.addEventListener("drop", (e) => {
+        e.preventDefault();
         if (colEl) colEl.classList.remove("drag-over");
         handleDrop(e, key);
       });

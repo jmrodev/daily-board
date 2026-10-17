@@ -1,6 +1,6 @@
-// js/tabs/docs.js - Lógica aislada de Documentación / Wiki
-import { state } from "../state.js";
-import { githubRequest } from "../api.js";
+// js/tabs/docs/docs.js - Lógica aislada de Documentación / Wiki
+import { state } from "../../state.js";
+import { githubRequest } from "../../api.js";
 
 export async function loadDocs() {
   const treeEl = document.getElementById("docsFileList");

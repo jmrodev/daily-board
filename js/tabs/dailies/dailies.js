@@ -1,6 +1,6 @@
-// js/tabs/dailies.js - Lógica aislada de Dailies conectada a /dailies/
-import { state, escapeHtml } from "../state.js";
-import { githubRequest } from "../api.js";
+// js/tabs/dailies/dailies.js - Lógica aislada de Dailies conectada a /dailies/
+import { state, escapeHtml } from "../../state.js";
+import { githubRequest } from "../../api.js";
 
 let cachedDailyTree = [];
 

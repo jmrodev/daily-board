@@ -1,6 +1,6 @@
-// js/tabs/sprints.js - Lógica aislada de Milestones y progreso
-import { state, escapeHtml } from "../state.js";
-import { githubRequest } from "../api.js";
+// js/tabs/sprints/sprints.js - Lógica aislada de Milestones y progreso
+import { state, escapeHtml } from "../../state.js";
+import { githubRequest } from "../../api.js";
 
 export async function loadSprints() {
   const container = document.getElementById("sprintsList");

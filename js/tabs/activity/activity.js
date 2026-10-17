@@ -1,6 +1,6 @@
-// js/tabs/activity.js - Lógica aislada de historial de commits
-import { state, escapeHtml } from "../state.js";
-import { githubRequest } from "../api.js";
+// js/tabs/activity/activity.js - Lógica aislada de historial de commits
+import { state, escapeHtml } from "../../state.js";
+import { githubRequest } from "../../api.js";
 
 export async function loadActivity() {
   const container = document.getElementById("activityList");
