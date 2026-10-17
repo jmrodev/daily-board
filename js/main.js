@@ -18,8 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupChannelComposer();
   initModals(handleAuthChanged);
 
-  // Cargar solapa inicial
-  switchTab("kanban");
+  // Cargar solapa inicial (Canales / Novedades como página principal)
+  switchTab("channels");
 
   // Polling pasivo cada 60 segundos (solo si la ventana del navegador está visible)
   setInterval(() => {
