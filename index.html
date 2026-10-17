@@ -22,28 +22,27 @@
 
     <!-- Navegación por Solapas -->
     <nav class="nav-tabs">
-      <button class="nav-tab active" data-tab="kanban" onclick="cambiarSolapa('kanban')">📌 Tablero Kanban</button>
-      <button class="nav-tab" data-tab="docs" onclick="cambiarSolapa('docs')">📖 Docs / Wiki</button>
-      <button class="nav-tab" data-tab="sprints" onclick="cambiarSolapa('sprints')">🎯 Sprints / Milestones</button>
-      <button class="nav-tab" data-tab="activity" onclick="cambiarSolapa('activity')">⚡ Actividad</button>
+      <button class="nav-tab active" data-tab="kanban">📌 Tablero Kanban</button>
+      <button class="nav-tab" data-tab="docs">📖 Docs / Wiki</button>
+      <button class="nav-tab" data-tab="sprints">🎯 Sprints / Milestones</button>
+      <button class="nav-tab" data-tab="activity">⚡ Actividad</button>
     </nav>
 
     <!-- Estado de Conexión & Acciones -->
     <div class="header-actions">
-      <div id="authStatus" class="auth-status" onclick="abrirModalAuth()">
+      <div id="authStatus" class="auth-status">
         <span class="auth-dot" id="authDot"></span>
         <span id="authLabel">Modo Lectura (Público)</span>
       </div>
-      <button class="btn secondary" onclick="recargarDatosActuales()">🔄 Refrescar</button>
-      <button id="btnNuevaAccion" class="btn primary" onclick="ejecutarAccionSolapa()">➕ Nueva Tarea</button>
+      <button id="btnRefresh" class="btn secondary">🔄 Refrescar</button>
+      <button id="btnNuevaAccion" class="btn primary">➕ Nueva Tarea</button>
     </div>
   </header>
 
   <!-- SOLAPA 1: TABLERO KANBAN -->
   <section id="tab-kanban" class="tab-content active">
     <div class="board-container">
-      <!-- To Do -->
-      <div class="kanban-column" id="col-todo" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'todo')">
+      <div class="kanban-column" id="col-todo">
         <div class="col-header todo">
           <h2>📌 Por Hacer</h2>
           <span class="count" id="count-todo">0</span>
@@ -51,8 +50,7 @@
         <div class="cards-list" id="list-todo"></div>
       </div>
 
-      <!-- In Progress -->
-      <div class="kanban-column" id="col-progress" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'progress')">
+      <div class="kanban-column" id="col-progress">
         <div class="col-header progress">
           <h2>⚡ En Curso</h2>
           <span class="count" id="count-progress">0</span>
@@ -60,8 +58,7 @@
         <div class="cards-list" id="list-progress"></div>
       </div>
 
-      <!-- Blocked -->
-      <div class="kanban-column" id="col-blocked" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'blocked')">
+      <div class="kanban-column" id="col-blocked">
         <div class="col-header blocked">
           <h2>🚧 Bloqueado</h2>
           <span class="count" id="count-blocked">0</span>
@@ -69,8 +66,7 @@
         <div class="cards-list" id="list-blocked"></div>
       </div>
 
-      <!-- Done -->
-      <div class="kanban-column" id="col-done" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'done')">
+      <div class="kanban-column" id="col-done">
         <div class="col-header done">
           <h2>✅ Listo</h2>
           <span class="count" id="count-done">0</span>
@@ -86,7 +82,6 @@
       <aside class="docs-sidebar">
         <div class="sidebar-head">
           <h3>Archivos en /docs</h3>
-          <button class="btn small primary" onclick="abrirModalNuevoDoc()">+ Nuevo Doc</button>
         </div>
         <ul id="docsFileList" class="docs-tree">
           <li class="loading">Cargando guías...</li>
@@ -134,7 +129,7 @@
 
   <!-- MODAL: AUTENTICACIÓN / TOKEN -->
   <dialog id="authModal" class="modal">
-    <form method="dialog" onsubmit="guardarToken(event)">
+    <form id="authModalForm" method="dialog">
       <h3>Conectar Cuenta de GitHub</h3>
       <p class="modal-desc">
         Para <strong>crear issues, mover tarjetas o crear documentos</strong>, GitHub exige firmar con tu cuenta. Podés usar tu Personal Access Token (PAT).
@@ -149,8 +144,8 @@
         <small>Se guarda sólo en este navegador (<code>localStorage</code>). Requiere permiso <code>repo</code>.</small>
       </label>
       <div class="modal-buttons">
-        <button type="button" class="btn secondary" onclick="cerrarModalAuth()">Cancelar</button>
-        <button type="button" class="btn danger" onclick="limpiarAuth()">Desconectar</button>
+        <button type="button" class="btn secondary" onclick="document.getElementById('authModal').close()">Cancelar</button>
+        <button type="button" id="btnDisconnectAuth" class="btn danger">Desconectar</button>
         <button type="submit" class="btn primary">Guardar y Activar Escritura</button>
       </div>
     </form>
@@ -158,7 +153,7 @@
 
   <!-- MODAL: NUEVA TAREA -->
   <dialog id="newIssueModal" class="modal">
-    <form method="dialog" onsubmit="crearNuevoIssue(event)">
+    <form id="newIssueForm" method="dialog">
       <h3>Crear Nueva Tarea en GitHub</h3>
       <label>
         Título del Issue:
@@ -185,7 +180,7 @@
 
   <!-- MODAL: NUEVO DOC -->
   <dialog id="newDocModal" class="modal">
-    <form method="dialog" onsubmit="crearNuevoDoc(event)">
+    <form id="newDocForm" method="dialog">
       <h3>Crear Nuevo Documento en /docs</h3>
       <label>
         Nombre del archivo (con .md):
@@ -202,6 +197,7 @@
     </form>
   </dialog>
 
-  <script src="app.js"></script>
+  <!-- Carga del Módulo Principal -->
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
