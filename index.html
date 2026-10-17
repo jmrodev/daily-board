@@ -3,112 +3,201 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Classroom Daily & Kanban (GitHub Native)</title>
+  <title>Classroom Hub · GitHub Native</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Markdown parser liviano y seguro via CDN (sin build step) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
+  <!-- Barra Superior -->
   <header class="app-header">
     <div class="header-brand">
-      <span class="icon">📋</span>
-      <h1>Classroom Board</h1>
-    </div>
-    <div class="header-actions">
-      <div id="repoInfo" class="repo-info" style="display: none;">
-        <span id="repoNameBadge" class="badge"></span>
+      <span class="icon">🎓</span>
+      <div>
+        <h1>Classroom Hub</h1>
+        <small id="repoSubtitle" class="repo-subtitle">jmrodev/daily-board</small>
       </div>
-      <button id="configBtn" class="btn secondary" onclick="toggleConfig()">⚙️ Configuración</button>
-      <button class="btn primary" onclick="abrirModalNuevoIssue()">➕ Nueva Tarea</button>
+    </div>
+
+    <!-- Navegación por Solapas -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="kanban" onclick="cambiarSolapa('kanban')">📌 Tablero Kanban</button>
+      <button class="nav-tab" data-tab="docs" onclick="cambiarSolapa('docs')">📖 Docs / Wiki</button>
+      <button class="nav-tab" data-tab="sprints" onclick="cambiarSolapa('sprints')">🎯 Sprints / Milestones</button>
+      <button class="nav-tab" data-tab="activity" onclick="cambiarSolapa('activity')">⚡ Actividad</button>
+    </nav>
+
+    <!-- Estado de Conexión & Acciones -->
+    <div class="header-actions">
+      <div id="authStatus" class="auth-status" onclick="abrirModalAuth()">
+        <span class="auth-dot" id="authDot"></span>
+        <span id="authLabel">Modo Lectura (Público)</span>
+      </div>
+      <button class="btn secondary" onclick="recargarDatosActuales()">🔄 Refrescar</button>
+      <button id="btnNuevaAccion" class="btn primary" onclick="ejecutarAccionSolapa()">➕ Nueva Tarea</button>
     </div>
   </header>
 
-  <!-- Modal / Panel de Configuración -->
-  <section id="configPanel" class="config-panel">
-    <h3>Configuración de Conexión a GitHub</h3>
-    <p>Ingresá los datos del repositorio de la clase y tu Personal Access Token (PAT).</p>
-    <div class="form-grid">
-      <label>
-        Dueño / Organización:
-        <input type="text" id="cfgOwner" placeholder="ej: jmrodev">
-      </label>
-      <label>
-        Repositorio:
-        <input type="text" id="cfgRepo" placeholder="ej: daily-scrum-serverless">
-      </label>
-      <label class="full-width">
-        GitHub Personal Access Token (PAT):
-        <input type="password" id="cfgToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-        <small>Se almacena solo localmente en tu navegador. Necesita permisos de <code>repo</code>.</small>
-      </label>
-    </div>
-    <div class="config-buttons">
-      <button class="btn primary" onclick="guardarConfig()">Guardar y Conectar</button>
-      <button class="btn secondary" onclick="toggleConfig()">Cerrar</button>
+  <!-- SOLAPA 1: TABLERO KANBAN -->
+  <section id="tab-kanban" class="tab-content active">
+    <div class="board-container">
+      <!-- To Do -->
+      <div class="kanban-column" id="col-todo" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'todo')">
+        <div class="col-header todo">
+          <h2>📌 Por Hacer</h2>
+          <span class="count" id="count-todo">0</span>
+        </div>
+        <div class="cards-list" id="list-todo"></div>
+      </div>
+
+      <!-- In Progress -->
+      <div class="kanban-column" id="col-progress" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'progress')">
+        <div class="col-header progress">
+          <h2>⚡ En Curso</h2>
+          <span class="count" id="count-progress">0</span>
+        </div>
+        <div class="cards-list" id="list-progress"></div>
+      </div>
+
+      <!-- Blocked -->
+      <div class="kanban-column" id="col-blocked" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'blocked')">
+        <div class="col-header blocked">
+          <h2>🚧 Bloqueado</h2>
+          <span class="count" id="count-blocked">0</span>
+        </div>
+        <div class="cards-list" id="list-blocked"></div>
+      </div>
+
+      <!-- Done -->
+      <div class="kanban-column" id="col-done" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'done')">
+        <div class="col-header done">
+          <h2>✅ Listo</h2>
+          <span class="count" id="count-done">0</span>
+        </div>
+        <div class="cards-list" id="list-done"></div>
+      </div>
     </div>
   </section>
 
-  <!-- Tablero Kanban -->
-  <main class="board-container">
-    <!-- Columna: Backlog / To Do -->
-    <div class="kanban-column" id="col-todo" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'todo')">
-      <div class="col-header todo">
-        <h2>📌 Por Hacer</h2>
-        <span class="count" id="count-todo">0</span>
-      </div>
-      <div class="cards-list" id="list-todo"></div>
+  <!-- SOLAPA 2: DOCS / WIKI -->
+  <section id="tab-docs" class="tab-content">
+    <div class="docs-layout">
+      <aside class="docs-sidebar">
+        <div class="sidebar-head">
+          <h3>Archivos en /docs</h3>
+          <button class="btn small primary" onclick="abrirModalNuevoDoc()">+ Nuevo Doc</button>
+        </div>
+        <ul id="docsFileList" class="docs-tree">
+          <li class="loading">Cargando guías...</li>
+        </ul>
+      </aside>
+      <main class="docs-viewer">
+        <div class="docs-header">
+          <h2 id="currentDocTitle">Seleccioná un documento</h2>
+          <div id="docActions" style="display: none;">
+            <a id="githubDocLink" href="#" target="_blank" rel="noopener" class="btn small secondary">Ver en GitHub ↗</a>
+          </div>
+        </div>
+        <article id="docContent" class="markdown-body">
+          <p class="placeholder-text">Elegí un archivo de la columna izquierda para visualizarlo.</p>
+        </article>
+      </main>
     </div>
+  </section>
 
-    <!-- Columna: In Progress -->
-    <div class="kanban-column" id="col-progress" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'progress')">
-      <div class="col-header progress">
-        <h2>⚡ En Curso</h2>
-        <span class="count" id="count-progress">0</span>
+  <!-- SOLAPA 3: SPRINTS / MILESTONES -->
+  <section id="tab-sprints" class="tab-content">
+    <div class="sprints-container">
+      <div class="sprints-head">
+        <h2>Hitos y Sprints del Equipo</h2>
+        <p>Progreso automático según el cierre de los issues en GitHub.</p>
       </div>
-      <div class="cards-list" id="list-progress"></div>
-    </div>
-
-    <!-- Columna: Blocked -->
-    <div class="kanban-column" id="col-blocked" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'blocked')">
-      <div class="col-header blocked">
-        <h2>🚧 Bloqueado</h2>
-        <span class="count" id="count-blocked">0</span>
+      <div id="sprintsList" class="sprints-grid">
+        <div class="loading">Cargando hitos de GitHub...</div>
       </div>
-      <div class="cards-list" id="list-blocked"></div>
     </div>
+  </section>
 
-    <!-- Columna: Done -->
-    <div class="kanban-column" id="col-done" ondragover="permitirSoltar(event)" ondrop="soltar(event, 'done')">
-      <div class="col-header done">
-        <h2>✅ Listo</h2>
-        <span class="count" id="count-done">0</span>
+  <!-- SOLAPA 4: ACTIVIDAD -->
+  <section id="tab-activity" class="tab-content">
+    <div class="activity-container">
+      <div class="activity-head">
+        <h2>Historial Reciente de Commits</h2>
+        <p>Últimos cambios subidos a la rama principal de GitHub.</p>
       </div>
-      <div class="cards-list" id="list-done"></div>
+      <div id="activityList" class="activity-timeline">
+        <div class="loading">Cargando actividad...</div>
+      </div>
     </div>
-  </main>
+  </section>
 
-  <!-- Modal Crear Tarea -->
+  <!-- MODAL: AUTENTICACIÓN / TOKEN -->
+  <dialog id="authModal" class="modal">
+    <form method="dialog" onsubmit="guardarToken(event)">
+      <h3>Conectar Cuenta de GitHub</h3>
+      <p class="modal-desc">
+        Para <strong>crear issues, mover tarjetas o crear documentos</strong>, GitHub exige firmar con tu cuenta. Podés usar tu Personal Access Token (PAT).
+      </p>
+      <label>
+        Repositorio (Dueño/Repo):
+        <input type="text" id="cfgRepoSlug" value="jmrodev/daily-board" required>
+      </label>
+      <label>
+        Tu Personal Access Token (PAT):
+        <input type="password" id="cfgUserToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+        <small>Se guarda sólo en este navegador (<code>localStorage</code>). Requiere permiso <code>repo</code>.</small>
+      </label>
+      <div class="modal-buttons">
+        <button type="button" class="btn secondary" onclick="cerrarModalAuth()">Cancelar</button>
+        <button type="button" class="btn danger" onclick="limpiarAuth()">Desconectar</button>
+        <button type="submit" class="btn primary">Guardar y Activar Escritura</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: NUEVA TAREA -->
   <dialog id="newIssueModal" class="modal">
     <form method="dialog" onsubmit="crearNuevoIssue(event)">
       <h3>Crear Nueva Tarea en GitHub</h3>
       <label>
         Título del Issue:
-        <input type="text" id="newTitle" required placeholder="ej: Implementar formulario de login">
+        <input type="text" id="newTitle" required placeholder="ej: Crear endpoint de login">
       </label>
       <label>
-        Descripción (Markdown):
+        Descripción (Markdown opcional):
         <textarea id="newBody" rows="4" placeholder="Qué se va a hacer, criterios de aceptación..."></textarea>
       </label>
       <label>
         Columna inicial:
         <select id="newColumn">
-          <option value="todo">Por Hacer</option>
-          <option value="progress">En Curso</option>
-          <option value="blocked">Bloqueado</option>
+          <option value="todo">📌 Por Hacer</option>
+          <option value="progress">⚡ En Curso</option>
+          <option value="blocked">🚧 Bloqueado</option>
         </select>
       </label>
       <div class="modal-buttons">
-        <button type="button" class="btn secondary" onclick="cerrarModalNuevoIssue()">Cancelar</button>
-        <button type="submit" class="btn primary">Crear Issue en GitHub</button>
+        <button type="button" class="btn secondary" onclick="document.getElementById('newIssueModal').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Crear en GitHub</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: NUEVO DOC -->
+  <dialog id="newDocModal" class="modal">
+    <form method="dialog" onsubmit="crearNuevoDoc(event)">
+      <h3>Crear Nuevo Documento en /docs</h3>
+      <label>
+        Nombre del archivo (con .md):
+        <input type="text" id="newDocFilename" required placeholder="ej: api-spec.md">
+      </label>
+      <label>
+        Contenido inicial (Markdown):
+        <textarea id="newDocContent" rows="6" required placeholder="# Título del Documento&#10;&#10;Contenido..."></textarea>
+      </label>
+      <div class="modal-buttons">
+        <button type="button" class="btn secondary" onclick="document.getElementById('newDocModal').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Guardar en GitHub (/docs)</button>
       </div>
     </form>
   </dialog>

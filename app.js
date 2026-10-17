@@ -1,7 +1,15 @@
-// Estado y Configuración Local
-const CONFIG_KEY = "gh_board_config";
-let config = JSON.parse(localStorage.getItem(CONFIG_KEY) || "{}");
-let issues = [];
+// Configuración y Estado Global
+const STORAGE_KEY = "classroom_hub_config";
+let config = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+// Defaults públicos (carga sin pedir token)
+if (!config.repoSlug) {
+  config.repoSlug = "jmrodev/daily-board";
+}
+
+let solapaActual = "kanban";
+let cachedIssues = [];
+let cachedDocs = [];
 
 const COLUMN_LABELS = {
   todo: "status:todo",
@@ -12,95 +20,103 @@ const COLUMN_LABELS = {
 
 // Inicialización
 document.addEventListener("DOMContentLoaded", () => {
-  if (config.owner && config.repo && config.token) {
-    document.getElementById("cfgOwner").value = config.owner;
-    document.getElementById("cfgRepo").value = config.repo;
-    document.getElementById("cfgToken").value = config.token;
-    actualizarBadgeRepo();
-    cargarIssues();
-  } else {
-    toggleConfig(true);
-  }
+  actualizarUIAuth();
+  cambiarSolapa("kanban");
 });
 
-function toggleConfig(forzarAbrir) {
-  const panel = document.getElementById("configPanel");
-  if (forzarAbrir === true) {
-    panel.classList.add("open");
-  } else {
-    panel.classList.toggle("open");
-  }
-}
+// Navegación por Solapas
+function cambiarSolapa(tabKey) {
+  solapaActual = tabKey;
 
-function actualizarBadgeRepo() {
-  const info = document.getElementById("repoInfo");
-  const badge = document.getElementById("repoNameBadge");
-  badge.textContent = `${config.owner}/${config.repo}`;
-  info.style.display = "block";
-}
-
-function guardarConfig() {
-  const owner = document.getElementById("cfgOwner").value.trim();
-  const repo = document.getElementById("cfgRepo").value.trim();
-  const token = document.getElementById("cfgToken").value.trim();
-
-  if (!owner || !repo || !token) {
-    alert("Por favor completá los 3 campos.");
-    return;
-  }
-
-  config = { owner, repo, token };
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-  actualizarBadgeRepo();
-  toggleConfig(false);
-  cargarIssues();
-}
-
-// Llamadas a GitHub API
-async function githubFetch(endpoint, options = {}) {
-  const url = `https://api.github.com/repos/${config.owner}/${config.repo}${endpoint}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Accept": "application/vnd.github+json",
-      "Authorization": `Bearer ${config.token}`,
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    }
+  // Actualizar botones de navegación
+  document.querySelectorAll(".nav-tab").forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.tab === tabKey);
   });
 
+  // Mostrar contenedor correspondiente
+  document.querySelectorAll(".tab-content").forEach(content => {
+    content.classList.remove("active");
+  });
+  document.getElementById(`tab-${tabKey}`).classList.add("active");
+
+  // Ajustar el botón de acción principal según solapa
+  const btnAccion = document.getElementById("btnNuevaAccion");
+  if (tabKey === "kanban") {
+    btnAccion.style.display = "inline-block";
+    btnAccion.textContent = "➕ Nueva Tarea";
+    cargarKanban();
+  } else if (tabKey === "docs") {
+    btnAccion.style.display = "inline-block";
+    btnAccion.textContent = "➕ Nuevo Doc";
+    cargarDocs();
+  } else if (tabKey === "sprints") {
+    btnAccion.style.display = "none";
+    cargarSprints();
+  } else if (tabKey === "activity") {
+    btnAccion.style.display = "none";
+    cargarActividad();
+  }
+}
+
+function ejecutarAccionSolapa() {
+  if (solapaActual === "kanban") {
+    abrirModalNuevaTarea();
+  } else if (solapaActual === "docs") {
+    abrirModalNuevoDoc();
+  }
+}
+
+function recargarDatosActuales() {
+  cambiarSolapa(solapaActual);
+}
+
+// Cliente GitHub API (con fallback público)
+async function githubRequest(endpoint, options = {}) {
+  const headers = {
+    "Accept": "application/vnd.github+json",
+    ...(options.headers || {})
+  };
+
+  if (config.token) {
+    headers["Authorization"] = `Bearer ${config.token}`;
+  }
+
+  const url = `https://api.github.com/repos/${config.repoSlug}${endpoint}`;
+  const res = await fetch(url, { ...options, headers });
+
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || `Error ${res.status}: ${res.statusText}`);
+    const errorBody = await res.json().catch(() => ({}));
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(`Permisos insuficientes o límite de API alcanzado. Configurá tu token de GitHub.`);
+    }
+    throw new Error(errorBody.message || `Error ${res.status}: ${res.statusText}`);
   }
 
   return res.json();
 }
 
-async function cargarIssues() {
-  try {
-    // Pedimos todos los issues abiertos y cerrados recientes
-    issues = await githubFetch("/issues?state=all&per_page=100");
-    renderizarTablero();
-  } catch (err) {
-    console.error(err);
-    alert("Error al cargar issues de GitHub: " + err.message);
-    toggleConfig(true);
-  }
-}
-
-// Renderizado del Tablero
+// ----------------------------------------------------
+// 1. LÓGICA DE TABLERO KANBAN
+// ----------------------------------------------------
 function clasificarColumna(issue) {
   if (issue.state === "closed") return "done";
-
-  const labels = issue.labels.map(l => (typeof l === "string" ? l : l.name).toLowerCase());
-  if (labels.includes(COLUMN_LABELS.blocked)) return "blocked";
-  if (labels.includes(COLUMN_LABELS.progress)) return "progress";
-  if (labels.includes(COLUMN_LABELS.done)) return "done";
+  const labelNames = (issue.labels || []).map(l => (typeof l === "string" ? l : l.name).toLowerCase());
+  if (labelNames.includes(COLUMN_LABELS.blocked)) return "blocked";
+  if (labelNames.includes(COLUMN_LABELS.progress)) return "progress";
+  if (labelNames.includes(COLUMN_LABELS.done)) return "done";
   return "todo";
 }
 
-function renderizarTablero() {
+async function cargarKanban() {
+  try {
+    cachedIssues = await githubRequest("/issues?state=all&per_page=100");
+    renderizarKanban();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function renderizarKanban() {
   const columnas = {
     todo: document.getElementById("list-todo"),
     progress: document.getElementById("list-progress"),
@@ -108,30 +124,28 @@ function renderizarTablero() {
     done: document.getElementById("list-done")
   };
 
-  // Limpiar listas
   Object.values(columnas).forEach(col => col.innerHTML = "");
-
   const contadores = { todo: 0, progress: 0, blocked: 0, done: 0 };
 
-  issues.forEach(issue => {
-    // Excluir Pull Requests (la API de issues incluye PRs)
-    if (issue.pull_request) return;
+  cachedIssues.forEach(issue => {
+    if (issue.pull_request) return; // Filtrar PRs
 
     const colKey = clasificarColumna(issue);
     contadores[colKey]++;
 
     const card = document.createElement("div");
     card.className = "task-card";
-    card.draggable = true;
-    card.id = `card-${issue.number}`;
+    card.draggable = !!config.token;
     card.dataset.number = issue.number;
 
-    card.addEventListener("dragstart", arrastrar);
-    card.addEventListener("dragend", soltarFinal);
+    if (config.token) {
+      card.addEventListener("dragstart", arrastrar);
+      card.addEventListener("dragend", soltarFinal);
+    }
 
     const labelsHtml = (issue.labels || [])
       .filter(l => !Object.values(COLUMN_LABELS).includes(l.name))
-      .map(l => `<span class="label-pill" style="background-color: #${l.color || '30363d'}22; border: 1px solid #${l.color || '30363d'}">${l.name}</span>`)
+      .map(l => `<span class="label-pill" style="background-color: #${l.color || '30363d'}22; border: 1px solid #${l.color || '30363d'}">${escapeHtml(l.name)}</span>`)
       .join("");
 
     card.innerHTML = `
@@ -141,7 +155,7 @@ function renderizarTablero() {
         </a>
       </div>
       <div class="card-meta">
-        <span>👤 ${issue.assignee ? issue.assignee.login : "Sin asignar"}</span>
+        <span>👤 ${issue.assignee ? escapeHtml(issue.assignee.login) : "Sin asignar"}</span>
         <span>💬 ${issue.comments}</span>
       </div>
       ${labelsHtml ? `<div class="card-labels">${labelsHtml}</div>` : ""}
@@ -150,16 +164,13 @@ function renderizarTablero() {
     columnas[colKey].appendChild(card);
   });
 
-  // Actualizar badges
   document.getElementById("count-todo").textContent = contadores.todo;
   document.getElementById("count-progress").textContent = contadores.progress;
   document.getElementById("count-blocked").textContent = contadores.blocked;
   document.getElementById("count-done").textContent = contadores.done;
 }
 
-// Drag & Drop
 let tarjetaArrastrada = null;
-
 function arrastrar(e) {
   tarjetaArrastrada = e.currentTarget;
   tarjetaArrastrada.classList.add("dragging");
@@ -173,73 +184,243 @@ function soltarFinal() {
   }
 }
 
-function permitirSoltar(e) {
-  e.preventDefault();
-}
+function permitirSoltar(e) { e.preventDefault(); }
 
 async function soltar(e, destinoKey) {
   e.preventDefault();
+  if (!config.token) {
+    alert("Para mover tarjetas en GitHub se requiere un Token con permisos.");
+    abrirModalAuth();
+    return;
+  }
+
   const issueNumber = parseInt(e.dataTransfer.getData("text/plain"), 10);
-  const issue = issues.find(i => i.number === issueNumber);
+  const issue = cachedIssues.find(i => i.number === issueNumber);
   if (!issue) return;
 
   const origenKey = clasificarColumna(issue);
   if (origenKey === destinoKey) return;
 
-  // Actualización optimista en memoria
+  // Actualización optimista
   if (destinoKey === "done") {
     issue.state = "closed";
   } else {
     issue.state = "open";
-    // Limpiar status labels anteriores
     issue.labels = (issue.labels || []).filter(l => {
       const name = typeof l === "string" ? l : l.name;
       return !Object.values(COLUMN_LABELS).includes(name);
     });
-    // Agregar nueva etiqueta
     if (COLUMN_LABELS[destinoKey]) {
       issue.labels.push({ name: COLUMN_LABELS[destinoKey], color: "30363d" });
     }
   }
 
-  renderizarTablero();
+  renderizarKanban();
 
-  // Sincronizar con GitHub API
   try {
     if (destinoKey === "done") {
-      await githubFetch(`/issues/${issueNumber}`, {
+      await githubRequest(`/issues/${issueNumber}`, {
         method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ state: "closed" })
       });
     } else {
-      // Reabrir si estaba cerrado
       const labelNames = (issue.labels || []).map(l => (typeof l === "string" ? l : l.name));
-      await githubFetch(`/issues/${issueNumber}`, {
+      await githubRequest(`/issues/${issueNumber}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          state: "open",
-          labels: labelNames
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: "open", labels: labelNames })
       });
     }
   } catch (err) {
-    alert("Error al mover el issue en GitHub: " + err.message);
-    cargarIssues(); // Rollback recargando
+    alert("Error al sincronizar con GitHub: " + err.message);
+    cargarKanban();
   }
 }
 
-// Modal Nuevo Issue
-function abrirModalNuevoIssue() {
+// ----------------------------------------------------
+// 2. LÓGICA DE DOCS / WIKI
+// ----------------------------------------------------
+async function cargarDocs() {
+  const treeEl = document.getElementById("docsFileList");
+  treeEl.innerHTML = `<li class="loading">Cargando guías desde /docs...</li>`;
+
+  try {
+    cachedDocs = await githubRequest("/contents/docs");
+    treeEl.innerHTML = "";
+
+    const mdFiles = cachedDocs.filter(item => item.type === "file" && item.name.endsWith(".md"));
+
+    if (mdFiles.length === 0) {
+      treeEl.innerHTML = `<li class="loading">No hay archivos Markdown en /docs</li>`;
+      return;
+    }
+
+    mdFiles.forEach((file, idx) => {
+      const li = document.createElement("li");
+      li.id = `doc-item-${file.name}`;
+      li.innerHTML = `<a href="javascript:void(0)" onclick="mostrarDoc('${file.path}', '${file.name}', '${file.html_url}')">📄 ${file.name}</a>`;
+      treeEl.appendChild(li);
+
+      // Cargar el primero automáticamente
+      if (idx === 0) {
+        mostrarDoc(file.path, file.name, file.html_url);
+      }
+    });
+  } catch (err) {
+    treeEl.innerHTML = `<li class="loading">Error al leer /docs: ${err.message}</li>`;
+  }
+}
+
+async function mostrarDoc(path, filename, htmlUrl) {
+  document.querySelectorAll(".docs-tree li").forEach(li => li.classList.remove("active"));
+  const currentItem = document.getElementById(`doc-item-${filename}`);
+  if (currentItem) currentItem.classList.add("active");
+
+  document.getElementById("currentDocTitle").textContent = filename;
+  const linkBtn = document.getElementById("githubDocLink");
+  linkBtn.href = htmlUrl;
+  document.getElementById("docActions").style.display = "block";
+
+  const contentArea = document.getElementById("docContent");
+  contentArea.innerHTML = `<p class="loading">Descargando ${filename}...</p>`;
+
+  try {
+    const data = await githubRequest(`/contents/${path}`);
+    // Decodificar Base64 UTF-8
+    const rawMarkdown = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ""))));
+    contentArea.innerHTML = marked.parse(rawMarkdown);
+  } catch (err) {
+    contentArea.innerHTML = `<p style="color: var(--blocked);">Error al cargar documento: ${err.message}</p>`;
+  }
+}
+
+// ----------------------------------------------------
+// 3. LÓGICA DE SPRINTS / MILESTONES
+// ----------------------------------------------------
+async function cargarSprints() {
+  const container = document.getElementById("sprintsList");
+  container.innerHTML = `<div class="loading">Cargando hitos de GitHub...</div>`;
+
+  try {
+    const milestones = await githubRequest("/milestones?state=all");
+    if (!milestones.length) {
+      container.innerHTML = `<p class="placeholder-text">No hay Milestones creados en este repositorio todavía.</p>`;
+      return;
+    }
+
+    container.innerHTML = milestones.map(m => {
+      const total = m.open_issues + m.closed_issues;
+      const pct = total > 0 ? Math.round((m.closed_issues / total) * 100) : 0;
+      return `
+        <div class="sprint-card">
+          <div class="sprint-card-head">
+            <h3><a href="${m.html_url}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;">${escapeHtml(m.title)}</a></h3>
+            <span class="badge">${m.state === "open" ? "En curso" : "Cerrado"}</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">${escapeHtml(m.description || "Sin descripción")}</p>
+          <div class="sprint-progress-bar">
+            <div class="sprint-progress-fill" style="width: ${pct}%"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+            <span>${pct}% Completado</span>
+            <span>${m.closed_issues} cerrados / ${total} totales</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  } catch (err) {
+    container.innerHTML = `<div class="loading">Error al cargar hitos: ${err.message}</div>`;
+  }
+}
+
+// ----------------------------------------------------
+// 4. LÓGICA DE ACTIVIDAD (COMMITS)
+// ----------------------------------------------------
+async function cargarActividad() {
+  const container = document.getElementById("activityList");
+  container.innerHTML = `<div class="loading">Cargando commits recientes...</div>`;
+
+  try {
+    const commits = await githubRequest("/commits?per_page=20");
+    container.innerHTML = commits.map(c => `
+      <div class="commit-item">
+        <div>
+          <div class="commit-msg">
+            <a href="${c.html_url}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;">
+              ${escapeHtml(c.commit.message.split("\n")[0])}
+            </a>
+          </div>
+          <div class="commit-author">
+            Por <strong>${escapeHtml(c.commit.author.name)}</strong> · ${new Date(c.commit.author.date).toLocaleString()}
+          </div>
+        </div>
+        <a href="${c.html_url}" target="_blank" rel="noopener" class="btn small secondary">
+          ${c.sha.substring(0, 7)}
+        </a>
+      </div>
+    `).join("");
+  } catch (err) {
+    container.innerHTML = `<div class="loading">Error al cargar actividad: ${err.message}</div>`;
+  }
+}
+
+// ----------------------------------------------------
+// MODALES Y FORMULARIOS (CREACIÓN HACIA GITHUB)
+// ----------------------------------------------------
+function abrirModalAuth() {
+  document.getElementById("cfgRepoSlug").value = config.repoSlug || "jmrodev/daily-board";
+  document.getElementById("cfgUserToken").value = config.token || "";
+  document.getElementById("authModal").showModal();
+}
+
+function cerrarModalAuth() {
+  document.getElementById("authModal").close();
+}
+
+function guardarToken(e) {
+  e.preventDefault();
+  const repoSlug = document.getElementById("cfgRepoSlug").value.trim();
+  const token = document.getElementById("cfgUserToken").value.trim();
+
+  config.repoSlug = repoSlug || "jmrodev/daily-board";
+  config.token = token;
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  actualizarUIAuth();
+  cerrarModalAuth();
+  recargarDatosActuales();
+}
+
+function limpiarAuth() {
+  config.token = "";
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  actualizarUIAuth();
+  cerrarModalAuth();
+  recargarDatosActuales();
+}
+
+function actualizarUIAuth() {
+  document.getElementById("repoSubtitle").textContent = config.repoSlug;
+  const dot = document.getElementById("authDot");
+  const label = document.getElementById("authLabel");
+
+  if (config.token) {
+    dot.classList.add("active");
+    label.textContent = "Conectado (Lectura & Escritura)";
+  } else {
+    dot.classList.remove("active");
+    label.textContent = "Modo Lectura (Público)";
+  }
+}
+
+function abrirModalNuevaTarea() {
   if (!config.token) {
-    alert("Primero configurá el token de GitHub.");
-    toggleConfig(true);
+    alert("Para crear un issue en GitHub necesitás conectar tu token.");
+    abrirModalAuth();
     return;
   }
   document.getElementById("newIssueModal").showModal();
-}
-
-function cerrarModalNuevoIssue() {
-  document.getElementById("newIssueModal").close();
 }
 
 async function crearNuevoIssue(e) {
@@ -249,23 +430,57 @@ async function crearNuevoIssue(e) {
   const column = document.getElementById("newColumn").value;
 
   const labels = [];
-  if (COLUMN_LABELS[column]) {
-    labels.push(COLUMN_LABELS[column]);
-  }
+  if (COLUMN_LABELS[column]) labels.push(COLUMN_LABELS[column]);
 
   try {
-    const nuevo = await githubFetch("/issues", {
+    const nuevo = await githubRequest("/issues", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, body, labels })
     });
-
-    issues.unshift(nuevo);
-    renderizarTablero();
-    cerrarModalNuevoIssue();
+    cachedIssues.unshift(nuevo);
+    renderizarKanban();
+    document.getElementById("newIssueModal").close();
     document.getElementById("newTitle").value = "";
     document.getElementById("newBody").value = "";
   } catch (err) {
-    alert("Error al crear el issue: " + err.message);
+    alert("Error al crear issue: " + err.message);
+  }
+}
+
+function abrirModalNuevoDoc() {
+  if (!config.token) {
+    alert("Para crear un documento en GitHub necesitás conectar tu token.");
+    abrirModalAuth();
+    return;
+  }
+  document.getElementById("newDocModal").showModal();
+}
+
+async function crearNuevoDoc(e) {
+  e.preventDefault();
+  let filename = document.getElementById("newDocFilename").value.trim();
+  if (!filename.endsWith(".md")) filename += ".md";
+
+  const content = document.getElementById("newDocContent").value;
+  // Codificar a Base64 UTF-8
+  const b64Content = btoa(unescape(encodeURIComponent(content)));
+
+  try {
+    await githubRequest(`/contents/docs/${filename}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: `docs: agregar ${filename} desde Classroom Hub`,
+        content: b64Content
+      })
+    });
+    document.getElementById("newDocModal").close();
+    document.getElementById("newDocFilename").value = "";
+    document.getElementById("newDocContent").value = "";
+    cargarDocs();
+  } catch (err) {
+    alert("Error al guardar documento en GitHub: " + err.message);
   }
 }
 
