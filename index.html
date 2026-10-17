@@ -46,6 +46,23 @@
 
   <!-- SOLAPA 1: TABLERO KANBAN -->
   <section id="tab-kanban" class="tab-content active">
+    <!-- Barra de Filtros del Tablero -->
+    <div class="kanban-toolbar">
+      <div class="filter-group">
+        <button id="btnFilterMyTasks" class="btn small secondary">👤 Solo mis tareas</button>
+        <div class="select-wrapper">
+          <label for="selectFilterAssignee">Responsable:</label>
+          <select id="selectFilterAssignee">
+            <option value="all">Todos los miembros</option>
+            <option value="unassigned">Sin asignar</option>
+          </select>
+        </div>
+      </div>
+      <div class="search-wrapper">
+        <input type="text" id="inputSearchTasks" placeholder="🔍 Buscar por título o número...">
+      </div>
+    </div>
+
     <div class="board-container">
       <div class="kanban-column" id="col-todo">
         <div class="col-header todo">

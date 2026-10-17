@@ -30,6 +30,36 @@ function setupNavigation() {
     if (state.currentTab === "docs") openNewDocModal();
     if (state.currentTab === "dailies") openNewDailyModal();
   });
+
+  // Filtros del Tablero Kanban
+  const btnMyTasks = document.getElementById("btnFilterMyTasks");
+  if (btnMyTasks) {
+    btnMyTasks.addEventListener("click", () => {
+      if (!state.user) {
+        alert("Iniciá sesión primero para ver tus tareas.");
+        return;
+      }
+      state.filters.onlyMine = !state.filters.onlyMine;
+      btnMyTasks.classList.toggle("active", state.filters.onlyMine);
+      import("./tabs/kanban.js").then(m => m.renderKanban());
+    });
+  }
+
+  const selectAssignee = document.getElementById("selectFilterAssignee");
+  if (selectAssignee) {
+    selectAssignee.addEventListener("change", (e) => {
+      state.filters.assignee = e.target.value;
+      import("./tabs/kanban.js").then(m => m.renderKanban());
+    });
+  }
+
+  const inputSearch = document.getElementById("inputSearchTasks");
+  if (inputSearch) {
+    inputSearch.addEventListener("input", (e) => {
+      state.filters.search = e.target.value.trim();
+      import("./tabs/kanban.js").then(m => m.renderKanban());
+    });
+  }
 }
 
 export function switchTab(tabKey) {

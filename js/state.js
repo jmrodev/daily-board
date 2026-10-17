@@ -12,9 +12,15 @@ export const state = {
   user: JSON.parse(localStorage.getItem(USER_KEY) || "null"),
   currentTab: "kanban",
   issues: [],
+  pullRequests: [],
   docs: [],
   milestones: [],
-  commits: []
+  commits: [],
+  filters: {
+    assignee: "all",
+    search: "",
+    onlyMine: false
+  }
 };
 
 export const COLUMN_LABELS = {
