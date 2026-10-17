@@ -275,6 +275,95 @@ ${qBloqueo}
 
   // Enviar Nuevo Comentario en el Issue
   const commentForm = document.getElementById("newCommentForm");
+  const commentInput = document.getElementById("commentBodyInput");
+  const btnCommentLink = document.getElementById("btnInsertCommentLink");
+  const commentFileInput = document.getElementById("commentFileInput");
+  const commentUploadIndicator = document.getElementById("commentUploadingIndicator");
+
+  // Asistente para insertar enlaces en comentarios
+  if (btnCommentLink && commentInput) {
+    btnCommentLink.addEventListener("click", () => {
+      const url = prompt("Pegá la URL del enlace (ej: https://...):");
+      if (!url) return;
+      const text = prompt("Texto para mostrar del enlace (ej: Ver documentación):", "Enlace") || url;
+      const mdLink = `[${text}](${url})`;
+      
+      const start = commentInput.selectionStart || 0;
+      const end = commentInput.selectionEnd || 0;
+      commentInput.value = commentInput.value.substring(0, start) + mdLink + commentInput.value.substring(end);
+      commentInput.focus();
+    });
+  }
+
+  // Subida de archivos adjuntos en comentarios de issues
+  if (commentFileInput && commentInput) {
+    commentFileInput.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (!state.config.token) {
+        showToast("Conectá tu Token de GitHub para subir archivos.", "warning");
+        openAuthModal();
+        commentFileInput.value = "";
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        showToast("El archivo es demasiado grande (máx 10 MB)", "error");
+        commentFileInput.value = "";
+        return;
+      }
+
+      if (commentUploadIndicator) commentUploadIndicator.style.display = "inline";
+
+      try {
+        const username = (state.user && state.user.username) ? state.user.username : "anonimo";
+        const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const timestamp = Date.now();
+        const storedFilename = `${timestamp}-${cleanName}`;
+        const filePath = `adjuntos/canales/${storedFilename}`;
+
+        const buffer = await file.arrayBuffer();
+        let binary = "";
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const b64Content = btoa(binary);
+
+        await githubRequest(`/contents/${filePath}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `upload: adjunto ${cleanName} de @${username} en issue`,
+            content: b64Content,
+            branch: "gh-pages"
+          })
+        });
+
+        const isImage = file.type.startsWith("image/");
+        const fileUrl = `https://raw.githubusercontent.com/${state.config.repoSlug}/gh-pages/${filePath}`;
+
+        let markdownSnippet = "";
+        if (isImage) {
+          markdownSnippet = `\n\n![${cleanName}](${fileUrl})\n`;
+        } else {
+          markdownSnippet = `\n\n📎 [Descargar ${cleanName}](${fileUrl})\n`;
+        }
+
+        commentInput.value += markdownSnippet;
+        commentInput.focus();
+        showToast(`Archivo "${cleanName}" adjuntado al comentario`, "success");
+      } catch (err) {
+        showToast("Error al subir archivo a GitHub: " + err.message, "error");
+      } finally {
+        if (commentUploadIndicator) commentUploadIndicator.style.display = "none";
+        commentFileInput.value = "";
+      }
+    });
+  }
+
   if (commentForm) {
     commentForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -285,7 +374,7 @@ ${qBloqueo}
       }
 
       const issueNum = document.getElementById("commentIssueNumber").value;
-      const body = document.getElementById("commentBodyInput").value.trim();
+      const body = commentInput.value.trim();
       const btn = document.getElementById("btnSendComment");
       btn.disabled = true;
       btn.textContent = "Enviando...";
@@ -296,7 +385,7 @@ ${qBloqueo}
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ body })
         });
-        document.getElementById("commentBodyInput").value = "";
+        commentInput.value = "";
         showToast("Comentario enviado a GitHub", "success");
         window.openIssueComments(issueNum); // Recargar comentarios
         loadKanban(); // Actualizar contador en la tarjeta

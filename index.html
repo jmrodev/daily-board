@@ -337,7 +337,15 @@
 
     <form id="newCommentForm" class="new-comment-form">
       <input type="hidden" id="commentIssueNumber">
-      <textarea id="commentBodyInput" rows="3" required placeholder="Escribí un comentario para el equipo (soporta Markdown)..."></textarea>
+      <div class="chat-composer-toolbar" style="margin-bottom: 8px;">
+        <button type="button" class="btn-chat-tool" id="btnInsertCommentLink" title="Insertar Enlace Markdown">🔗 Enlace</button>
+        <label class="btn-chat-tool file-tool-btn" title="Adjuntar foto, captura o documento PDF">
+          📎 Adjuntar archivo (Foto / PDF / Doc)
+          <input type="file" id="commentFileInput" accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;">
+        </label>
+        <span id="commentUploadingIndicator" class="uploading-indicator" style="display: none;">⏳ Subiendo archivo...</span>
+      </div>
+      <textarea id="commentBodyInput" rows="3" required placeholder="Escribí un comentario para el equipo (soporta Markdown, links, imágenes)..."></textarea>
       <div class="modal-footer" style="padding-top: 10px; margin-top: 10px;">
         <button type="button" class="btn secondary" onclick="document.getElementById('issueCommentsModal').close()">Cerrar</button>
         <button type="submit" class="btn primary" id="btnSendComment">💬 Enviar a GitHub</button>
