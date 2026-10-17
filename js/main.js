@@ -81,21 +81,28 @@ function setupDragAndDrop() {
 
 function renderAuthBadge() {
   document.getElementById("repoSubtitle").textContent = state.config.repoSlug;
+  const btn = document.getElementById("authBtn");
   const dot = document.getElementById("authDot");
   const label = document.getElementById("authLabel");
 
   if (state.user && state.user.username) {
-    dot.classList.add("active");
+    btn.classList.add("logged-in");
+    dot.style.display = "inline-block";
     label.innerHTML = `
       <img src="${state.user.avatarUrl}" width="18" height="18" style="border-radius: 50%; vertical-align: middle; margin-right: 4px;">
-      @${state.user.username}
+      <strong>@${state.user.username}</strong>
     `;
+    btn.title = `Conectado como @${state.user.username}. Click para opciones.`;
   } else if (state.config.token) {
-    dot.classList.add("active");
+    btn.classList.add("logged-in");
+    dot.style.display = "inline-block";
     label.textContent = "Conectado";
+    btn.title = "Token configurado. Click para opciones.";
   } else {
-    dot.classList.remove("active");
-    label.textContent = "Iniciar sesión";
+    btn.classList.remove("logged-in");
+    dot.style.display = "none";
+    label.textContent = "🔑 Iniciar sesión";
+    btn.title = "Click para iniciar sesión con GitHub";
   }
 }
 

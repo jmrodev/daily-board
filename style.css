@@ -91,20 +91,32 @@ body {
   gap: 10px;
 }
 
-.auth-status {
-  display: flex;
+/* Botón de Autenticación clásico arriba a la derecha */
+.auth-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  padding: 5px 10px;
-  border-radius: 20px;
+  gap: 8px;
+  background: #238636;
+  color: #fff;
+  border: 1px solid rgba(240, 246, 252, 0.1);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: all 0.15s ease;
 }
 
-.auth-status:hover {
+.auth-btn:hover {
+  background: #2ea043;
+}
+
+.auth-btn.logged-in {
+  background: var(--surface-hover);
+  color: var(--text-main);
+  border-color: var(--border);
+}
+
+.auth-btn.logged-in:hover {
   border-color: var(--accent);
 }
 
@@ -112,12 +124,12 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #8b949e;
+  background: #fff;
 }
 
-.auth-dot.active {
-  background: var(--primary);
-  box-shadow: 0 0 6px var(--primary);
+.auth-btn.logged-in .auth-dot {
+  background: #238636;
+  box-shadow: 0 0 6px #238636;
 }
 
 /* Botones */

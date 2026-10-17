@@ -6,8 +6,8 @@ import { loadDocs } from "./tabs/docs.js";
 import { loadDailies } from "./tabs/dailies.js";
 
 export function initModals(onAuthChanged) {
-  // Click en badge de estado de auth arriba a la derecha
-  document.getElementById("authStatus").addEventListener("click", openAuthModal);
+  // Click en botón clásico de auth arriba a la derecha
+  document.getElementById("authBtn").addEventListener("click", openAuthModal);
 
   // Guardar Token y validar contra GitHub
   document.getElementById("authModalForm").addEventListener("submit", async (e) => {
