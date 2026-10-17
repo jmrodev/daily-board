@@ -195,28 +195,52 @@
   </dialog>
 
   <!-- MODAL: REGISTRAR MI DAILY -->
-  <dialog id="newDailyModal" class="modal">
+  <dialog id="newDailyModal" class="modal modern-modal">
     <form id="newDailyForm" method="dialog">
-      <h3>☕ Registrar mi Daily Scrum</h3>
-      <label>
-        Fecha del Daily:
-        <input type="date" id="dailyDateInput" required>
-      </label>
-      <label>
-        1. ¿Qué hiciste ayer / recientemente?
-        <textarea id="dailyDone" rows="3" required placeholder="ej: Diseñé la interfaz de usuario y arreglé el bug del drag & drop..."></textarea>
-      </label>
-      <label>
-        2. ¿Qué vas a hacer hoy?
-        <textarea id="dailyPlan" rows="3" required placeholder="ej: Voy a implementar la integración de la API y documentar en /docs..."></textarea>
-      </label>
-      <label>
-        3. ¿Tenés algún impedimento o bloqueo?
-        <input type="text" id="dailyBlocker" placeholder="ej: Ninguno / Esperando que se apruebe el PR #3">
-      </label>
-      <div class="modal-buttons">
+      <div class="modal-header">
+        <div>
+          <h3>☕ Registro de Daily Scrum</h3>
+          <p class="modal-subtitle">Sincronizá tu avance diario con el equipo en GitHub</p>
+        </div>
+        <button type="button" class="btn-close" onclick="document.getElementById('newDailyModal').close()">✕</button>
+      </div>
+
+      <div class="daily-meta-row">
+        <label class="compact-label">
+          <span>📅 Fecha:</span>
+          <input type="date" id="dailyDateInput" required>
+        </label>
+      </div>
+
+      <div class="daily-question-card done-card">
+        <div class="question-header">
+          <span class="q-icon">✅</span>
+          <label for="dailyDone">¿Qué lograste ayer / recientemente?</label>
+        </div>
+        <textarea id="dailyDone" rows="3" required placeholder="Ej: Implementé la autenticación, corregí el bug del header..."></textarea>
+      </div>
+
+      <div class="daily-question-card plan-card">
+        <div class="question-header">
+          <span class="q-icon">🎯</span>
+          <label for="dailyPlan">¿Qué tenés planeado para hoy?</label>
+        </div>
+        <textarea id="dailyPlan" rows="3" required placeholder="Ej: Voy a crear los tests unitarios y conectar la API con el tablero..."></textarea>
+      </div>
+
+      <div class="daily-question-card blocker-card">
+        <div class="question-header">
+          <span class="q-icon">🚧</span>
+          <label for="dailyBlocker">¿Tenés algún bloqueo o impedimento?</label>
+        </div>
+        <input type="text" id="dailyBlocker" placeholder="Ej: Ninguno (o: esperando que se apruebe el PR #4)">
+      </div>
+
+      <div class="modal-footer">
         <button type="button" class="btn secondary" onclick="document.getElementById('newDailyModal').close()">Cancelar</button>
-        <button type="submit" class="btn primary">Guardar en /dailies</button>
+        <button type="submit" class="btn primary" id="btnSubmitDaily">
+          💾 Publicar Daily en /dailies
+        </button>
       </div>
     </form>
   </dialog>
