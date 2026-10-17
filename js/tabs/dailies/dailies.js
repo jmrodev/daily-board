@@ -61,7 +61,7 @@ async function showDateReports(folderItem) {
   // Si es un archivo directo legacy (YYYY-MM-DD.md)
   if (folderItem.type === "file") {
     try {
-      const data = await githubRequest(`/contents/${folderItem.path}`);
+      const data = await githubRequest(`/contents/${folderItem.path}?ref=gh-pages`);
       const rawMarkdown = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ""))));
       contentArea.innerHTML = window.marked ? window.marked.parse(rawMarkdown) : rawMarkdown;
     } catch (err) {
@@ -72,7 +72,7 @@ async function showDateReports(folderItem) {
 
   // Si es una carpeta con archivos individuales por usuario (/dailies/YYYY-MM-DD/usuario.md)
   try {
-    const userFiles = await githubRequest(`/contents/${folderItem.path}`);
+    const userFiles = await githubRequest(`/contents/${folderItem.path}?ref=gh-pages`);
     const mdFiles = userFiles.filter(f => f.type === "file" && f.name.endsWith(".md"));
 
     if (mdFiles.length === 0) {
@@ -84,7 +84,7 @@ async function showDateReports(folderItem) {
     const reports = await Promise.all(
       mdFiles.map(async file => {
         try {
-          const fileData = await githubRequest(`/contents/${file.path}`);
+          const fileData = await githubRequest(`/contents/${file.path}?ref=gh-pages`);
           const raw = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ""))));
           return `<div class="daily-user-card">${window.marked ? window.marked.parse(raw) : raw}</div>`;
         } catch {
