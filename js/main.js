@@ -6,6 +6,7 @@ import { loadDailies } from "./tabs/dailies.js";
 import { loadSprints } from "./tabs/sprints.js";
 import { loadActivity } from "./tabs/activity.js";
 import { initModals, openNewIssueModal, openNewDocModal, openNewDailyModal } from "./modals.js";
+import { showToast } from "./toast.js";
 
 // Inicialización de la aplicación
 document.addEventListener("DOMContentLoaded", () => {
@@ -47,7 +48,7 @@ function setupNavigation() {
     selectUser.addEventListener("change", (e) => {
       const val = e.target.value;
       if (val === "mine" && !state.user) {
-        alert("Iniciá sesión primero para ver tus tareas.");
+        showToast("Iniciá sesión primero para ver tus tareas.", "info");
         import("./modals.js").then(m => m.openAuthModal());
         selectUser.value = "all";
         state.filters.assignee = "all";

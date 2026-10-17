@@ -4,6 +4,7 @@ import { githubRequest } from "./api.js";
 import { loadKanban, renderKanban } from "./tabs/kanban.js";
 import { loadDocs } from "./tabs/docs.js";
 import { loadDailies } from "./tabs/dailies.js";
+import { showToast } from "./toast.js";
 
 export function initModals(onAuthChanged) {
   // Click en botón clásico de auth arriba a la derecha
@@ -16,7 +17,7 @@ export function initModals(onAuthChanged) {
     const token = document.getElementById("cfgUserToken").value.trim();
 
     if (!token) {
-      alert("Por favor ingresá tu Token para iniciar sesión.");
+      showToast("Por favor ingresá tu Token para iniciar sesión.", "warning");
       return;
     }
 
@@ -36,9 +37,10 @@ export function initModals(onAuthChanged) {
       const userData = await userRes.json();
       saveConfig(repoSlug, token, userData.login, userData.avatar_url);
       document.getElementById("authModal").close();
+      showToast(`¡Sesión iniciada como @${userData.login}!`, "success");
       onAuthChanged();
     } catch (err) {
-      alert(err.message);
+      showToast(err.message, "error");
     }
   });
 
@@ -46,6 +48,7 @@ export function initModals(onAuthChanged) {
   document.getElementById("btnDisconnectAuth").addEventListener("click", () => {
     clearUserSession();
     document.getElementById("authModal").close();
+    showToast("Sesión cerrada correctamente", "info");
     onAuthChanged();
   });
 
@@ -70,8 +73,9 @@ export function initModals(onAuthChanged) {
       document.getElementById("newIssueModal").close();
       document.getElementById("newTitle").value = "";
       document.getElementById("newBody").value = "";
+      showToast(`Tarea #${nuevo.number} creada en GitHub`, "success");
     } catch (err) {
-      alert("Error al crear issue: " + err.message);
+      showToast("Error al crear issue: " + err.message, "error");
     }
   });
 
@@ -96,9 +100,10 @@ export function initModals(onAuthChanged) {
       document.getElementById("newDocModal").close();
       document.getElementById("newDocFilename").value = "";
       document.getElementById("newDocContent").value = "";
+      showToast(`Documento ${filename} guardado en /docs`, "success");
       loadDocs();
     } catch (err) {
-      alert("Error al guardar documento en GitHub: " + err.message);
+      showToast("Error al guardar documento en GitHub: " + err.message, "error");
     }
   });
 
@@ -158,9 +163,10 @@ ${qBloqueo}
       document.getElementById("dailyDone").value = "";
       document.getElementById("dailyPlan").value = "";
       document.getElementById("dailyBlocker").value = "";
+      showToast("Reporte diario guardado correctamente", "success");
       loadDailies();
     } catch (err) {
-      alert("Error al registrar daily: " + err.message);
+      showToast("Error al registrar daily: " + err.message, "error");
     }
   });
 
@@ -170,7 +176,7 @@ ${qBloqueo}
     commentForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!state.config.token) {
-        alert("Para comentar necesitás conectar tu token.");
+        showToast("Para comentar necesitás conectar tu token.", "warning");
         openAuthModal();
         return;
       }
@@ -188,10 +194,11 @@ ${qBloqueo}
           body: JSON.stringify({ body })
         });
         document.getElementById("commentBodyInput").value = "";
+        showToast("Comentario enviado a GitHub", "success");
         window.openIssueComments(issueNum); // Recargar comentarios
         loadKanban(); // Actualizar contador en la tarjeta
       } catch (err) {
-        alert("Error al enviar comentario: " + err.message);
+        showToast("Error al enviar comentario: " + err.message, "error");
       } finally {
         btn.disabled = false;
         btn.textContent = "💬 Enviar a GitHub";
@@ -248,7 +255,7 @@ export function openAuthModal() {
 
 export function openNewIssueModal() {
   if (!state.config.token) {
-    alert("Para crear un issue primero iniciá sesión con tu Token de GitHub.");
+    showToast("Para crear un issue primero iniciá sesión con tu Token de GitHub.", "warning");
     openAuthModal();
     return;
   }
@@ -257,7 +264,7 @@ export function openNewIssueModal() {
 
 export function openNewDocModal() {
   if (!state.config.token) {
-    alert("Para crear un documento primero iniciá sesión con tu Token de GitHub.");
+    showToast("Para crear un documento primero iniciá sesión con tu Token de GitHub.", "warning");
     openAuthModal();
     return;
   }
@@ -266,7 +273,7 @@ export function openNewDocModal() {
 
 export function openNewDailyModal() {
   if (!state.config.token) {
-    alert("Para registrar tu Daily primero iniciá sesión con tu Token de GitHub.");
+    showToast("Para registrar tu Daily primero iniciá sesión con tu Token de GitHub.", "warning");
     openAuthModal();
     return;
   }

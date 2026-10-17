@@ -1,6 +1,7 @@
 // js/tabs/kanban.js - Lógica aislada del Tablero Kanban
 import { state, COLUMN_LABELS, escapeHtml } from "../state.js";
 import { githubRequest } from "../api.js";
+import { showToast } from "../toast.js";
 
 let draggedCard = null;
 
@@ -49,13 +50,23 @@ export async function loadKanban() {
             const latestByUser = {};
             (reviews || []).forEach(r => {
               if (r.user && r.user.login) {
-                latestByUser[r.user.login] = r.state;
+                latestByUser[r.user.login] = {
+                  state: r.state,
+                  avatarUrl: r.user.avatar_url
+                };
               }
             });
-            const approvedCount = Object.values(latestByUser).filter(st => st === "APPROVED").length;
-            state.prReviews[pr.number] = { approvedCount, totalRequired: 2 };
+            const approvedReviewers = Object.entries(latestByUser)
+              .filter(([_, data]) => data.state === "APPROVED")
+              .map(([login, data]) => ({ login, avatarUrl: data.avatarUrl }));
+
+            state.prReviews[pr.number] = {
+              approvedCount: approvedReviewers.length,
+              totalRequired: 2,
+              reviewers: approvedReviewers
+            };
           } catch {
-            state.prReviews[pr.number] = { approvedCount: 0, totalRequired: 2 };
+            state.prReviews[pr.number] = { approvedCount: 0, totalRequired: 2, reviewers: [] };
           }
         })
       ).then(() => {
@@ -162,16 +173,30 @@ export function renderKanban() {
       const isMerged = linkedPR.merged_at || linkedPR.state === "closed";
       let prStateLabel = isMerged ? "✓ Aceptado / Merged" : "⏳ En revisión";
       const prClass = isMerged ? "merged" : "open";
+      let reviewersHtml = "";
 
       if (!isMerged && state.prReviews && state.prReviews[linkedPR.number]) {
-        const { approvedCount, totalRequired } = state.prReviews[linkedPR.number];
+        const { approvedCount, totalRequired, reviewers } = state.prReviews[linkedPR.number];
         prStateLabel = `⏳ ${approvedCount}/${totalRequired} aprobados`;
+
+        if (reviewers && reviewers.length > 0) {
+          const names = reviewers.map(r => `@${escapeHtml(r.login)}`).join(", ");
+          reviewersHtml = `
+            <div class="pr-reviewers-list" title="Revisores que aprobaron este PR">
+              ${reviewers.map(r => `<img src="${r.avatarUrl}" width="16" height="16" class="reviewer-avatar" alt="${r.login}">`).join("")}
+              <span>${names}</span>
+            </div>
+          `;
+        }
       }
 
       prBadgeHtml = `
-        <a href="${linkedPR.html_url}" target="_blank" rel="noopener" class="pr-badge ${prClass}" title="Ver Pull Request #${linkedPR.number} en GitHub">
-          🔀 PR #${linkedPR.number} (${prStateLabel})
-        </a>
+        <div class="pr-badge-container">
+          <a href="${linkedPR.html_url}" target="_blank" rel="noopener" class="pr-badge ${prClass}" title="Ver Pull Request #${linkedPR.number} en GitHub">
+            🔀 PR #${linkedPR.number} (${prStateLabel})
+          </a>
+          ${reviewersHtml}
+        </div>
       `;
     }
 
@@ -245,12 +270,12 @@ export async function handleDrop(e, targetCol) {
 
   // Regla estricta 1: Nadie puede arrastrar manualmente a Listo
   if (targetCol === "done") {
-    alert("🔒 La columna 'Listo' está protegida:\nSolo se completa automáticamente cuando se aceptan los 2 reviews y se fusiona el Pull Request en GitHub.");
+    showToast("🔒 La columna 'Listo' está protegida:\nSolo se completa automáticamente cuando se aceptan los 2 reviews y se fusiona el PR en GitHub.", "warning", 5000);
     return;
   }
 
   if (!state.config.token) {
-    alert("Para mover tareas en GitHub se requiere un Token con permisos de escritura.");
+    showToast("Para mover tareas en GitHub se requiere un Token con permisos de escritura.", "warning");
     return;
   }
 
@@ -270,7 +295,7 @@ export async function handleDrop(e, targetCol) {
       issue.assignee = { login: state.user.username };
       autoAssigned = true;
     } else {
-      alert("⚠️ Regla de flujo: No podés pasar una tarea a 'En Curso' sin antes tener un responsable asignado.");
+      showToast("⚠️ Regla de flujo: No podés pasar una tarea a 'En Curso' sin antes tener un responsable asignado.", "warning");
       return;
     }
   }
@@ -299,8 +324,9 @@ export async function handleDrop(e, targetCol) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patchPayload)
     });
+    showToast(`Tarea #${issueNumber} actualizada en GitHub`, "success", 2500);
   } catch (err) {
-    alert("Error al sincronizar con GitHub: " + err.message);
+    showToast("Error al sincronizar con GitHub: " + err.message, "error");
     loadKanban(); // Revertir con el estado remoto
   }
 }
@@ -308,7 +334,7 @@ export async function handleDrop(e, targetCol) {
 // Función global para auto-asignarse un issue con un click
 window.selfAssignIssue = async function (issueNumber) {
   if (!state.config.token || !state.user) {
-    alert("Iniciá sesión con tu token de GitHub para asignarte esta tarea.");
+    showToast("Iniciá sesión con tu token de GitHub para asignarte esta tarea.", "info");
     import("../modals.js").then(m => m.openAuthModal());
     return;
   }
@@ -326,8 +352,9 @@ window.selfAssignIssue = async function (issueNumber) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assignees: [username] })
     });
+    showToast(`Te asignaste la tarea #${issueNumber}`, "success", 2500);
   } catch (err) {
-    alert("Error al asignar tarea en GitHub: " + err.message);
+    showToast("Error al asignar tarea en GitHub: " + err.message, "error");
     loadKanban();
   }
 };
