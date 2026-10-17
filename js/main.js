@@ -16,6 +16,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Cargar solapa inicial
   switchTab("kanban");
+
+  // Polling pasivo cada 60 segundos (solo si la ventana del navegador está visible)
+  setInterval(() => {
+    if (document.visibilityState === "visible") {
+      // Refrescar datos en segundo plano sin interrumpir lo que el usuario esté escribiendo
+      if (state.currentTab === "kanban") {
+        loadKanban();
+      }
+    }
+  }, 60000);
 });
 
 function setupNavigation() {

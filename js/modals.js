@@ -102,7 +102,7 @@ export function initModals(onAuthChanged) {
     }
   });
 
-  // Modal Registrar Daily (/dailies/YYYY-MM-DD.md)
+  // Modal Registrar Daily (/dailies/YYYY-MM-DD/usuario.md)
   document.getElementById("newDailyForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const dateStr = document.getElementById("dailyDateInput").value;
@@ -110,30 +110,40 @@ export function initModals(onAuthChanged) {
     const qHoy = document.getElementById("dailyPlan").value.trim();
     const qBloqueo = document.getElementById("dailyBlocker").value.trim() || "Ninguno";
 
-    const author = (state.user && state.user.username) ? `@${state.user.username}` : "Alumno";
-    const filename = `${dateStr}.md`;
-    const path = `dailies/${filename}`;
+    const username = (state.user && state.user.username) ? state.user.username : "anonimo";
+    const author = `@${username}`;
+    const filename = `${username}.md`;
+    const path = `dailies/${dateStr}/${filename}`;
 
-    const nuevaEntrada = `\n### ${author}\n- **Ayer / Realizado:** ${qAyer}\n- **Plan para hoy:** ${qHoy}\n- **Bloqueos:** ${qBloqueo}\n`;
+    const reportContent = `# Daily Scrum · ${dateStr}
+**Autor:** ${author}
+**Fecha:** ${new Date().toLocaleDateString("es-AR")}
+
+---
+
+### 1. ¿Qué hiciste ayer?
+${qAyer}
+
+### 2. ¿Qué tenés pensado hacer hoy?
+${qHoy}
+
+### 3. ¿Tenés algún bloqueo o impedimento?
+${qBloqueo}
+`;
 
     try {
       let sha = null;
-      let existingContent = `# Daily Scrum · ${dateStr}\n\nRegistro diario de actividades y bloqueos del equipo.\n\n---`;
-
-      // Verificar si ya existe el daily de hoy para concatenar la respuesta
       try {
         const fileData = await githubRequest(`/contents/${path}`);
         sha = fileData.sha;
-        existingContent = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ""))));
-      } catch (err) {
-        // No existe todavía, se crea desde cero
+      } catch {
+        // No existe todavía, se crea limpio
       }
 
-      const updatedContent = existingContent + nuevaEntrada;
-      const b64Content = btoa(unescape(encodeURIComponent(updatedContent)));
+      const b64Content = btoa(unescape(encodeURIComponent(reportContent)));
 
       const bodyPayload = {
-        message: `daily: registrar reporte de ${author} (${dateStr})`,
+        message: `daily: reporte individual de ${author} (${dateStr})`,
         content: b64Content
       };
       if (sha) bodyPayload.sha = sha;
