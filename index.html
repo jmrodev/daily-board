@@ -212,8 +212,20 @@
   <section id="tab-activity" class="tab-content">
     <div class="activity-container">
       <div class="activity-head">
-        <h2>Historial Reciente de Commits</h2>
-        <p>Últimos cambios subidos a la rama principal de GitHub.</p>
+        <div>
+          <h2>Historial Reciente de Commits</h2>
+          <p>Línea de tiempo de cambios registrados en el repositorio de GitHub.</p>
+        </div>
+        <div class="activity-controls">
+          <label for="selectActivityBranch" style="font-size: 0.82rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px;">
+            <span>Rama:</span>
+            <select id="selectActivityBranch" class="btn-select-filter">
+              <option value="all">🌐 Todas las ramas (Global)</option>
+              <option value="gh-pages">🚀 gh-pages (Project Hub & Canales)</option>
+              <option value="main">💻 main (Código del Proyecto)</option>
+            </select>
+          </label>
+        </div>
       </div>
       <div id="activityList" class="activity-timeline">
         <div class="loading">Cargando actividad...</div>
