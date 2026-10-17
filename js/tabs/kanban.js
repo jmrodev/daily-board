@@ -75,6 +75,7 @@ export async function loadKanban() {
     }
   } catch (err) {
     console.error("Error al cargar Kanban:", err);
+    showToast(err.message, "warning", 6000);
   }
 }
 
