@@ -1,6 +1,14 @@
-// js/state.js - Estado Global Único y Persistencia
-const STORAGE_KEY = "classroom_hub_config";
-const USER_KEY = "classroom_hub_user";
+// js/state.js - Estado Global Único y Persistencia aislada por repositorio
+function getStorageNamespace() {
+  if (typeof window !== "undefined" && window.location) {
+    const path = window.location.pathname.replace(/\/$/, "");
+    return path ? `_${path.replace(/[^a-zA-Z0-9]/g, "_")}` : "";
+  }
+  return "";
+}
+
+const STORAGE_KEY = `classroom_hub_config${getStorageNamespace()}`;
+const USER_KEY = `classroom_hub_user${getStorageNamespace()}`;
 
 function detectCurrentRepoSlug() {
   if (typeof window !== "undefined" && window.location) {
@@ -17,13 +25,14 @@ function detectCurrentRepoSlug() {
   return "jmrodev/daily-board";
 }
 
-const defaultConfig = {
-  repoSlug: detectCurrentRepoSlug(),
-  token: ""
-};
+const detectedSlug = detectCurrentRepoSlug();
+const savedConfig = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 
 export const state = {
-  config: { ...defaultConfig, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") },
+  config: {
+    repoSlug: savedConfig.repoSlug || detectedSlug,
+    token: savedConfig.token || ""
+  },
   user: JSON.parse(localStorage.getItem(USER_KEY) || "null"),
   currentTab: "kanban",
   issues: [],
