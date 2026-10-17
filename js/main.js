@@ -101,17 +101,31 @@ export function switchTab(tabKey) {
 
 function setupDragAndDrop() {
   const dropZones = [
-    { id: "col-todo", key: "todo" },
-    { id: "col-progress", key: "progress" },
-    { id: "col-blocked", key: "blocked" },
-    { id: "col-done", key: "done" }
+    { colId: "col-todo", listId: "list-todo", key: "todo" },
+    { colId: "col-progress", listId: "list-progress", key: "progress" },
+    { colId: "col-blocked", listId: "list-blocked", key: "blocked" },
+    { colId: "col-done", listId: "list-done", key: "done" }
   ];
 
-  dropZones.forEach(({ id, key }) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener("dragover", (e) => e.preventDefault());
-    el.addEventListener("drop", (e) => handleDrop(e, key));
+  dropZones.forEach(({ colId, listId, key }) => {
+    const colEl = document.getElementById(colId);
+    const listEl = document.getElementById(listId);
+
+    [colEl, listEl].forEach(target => {
+      if (!target) return;
+      target.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = key === "done" ? "none" : "move";
+        if (colEl) colEl.classList.add("drag-over");
+      });
+      target.addEventListener("dragleave", () => {
+        if (colEl) colEl.classList.remove("drag-over");
+      });
+      target.addEventListener("drop", (e) => {
+        if (colEl) colEl.classList.remove("drag-over");
+        handleDrop(e, key);
+      });
+    });
   });
 }
 

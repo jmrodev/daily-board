@@ -234,6 +234,22 @@ body {
   flex-direction: column;
   min-width: 260px;
   max-height: calc(100vh - 100px);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.kanban-column.drag-over {
+  border-color: var(--accent);
+  background: rgba(88, 166, 255, 0.05);
+}
+
+#col-done.drag-over {
+  border-color: #f85149;
+  background: rgba(248, 81, 73, 0.08);
+}
+
+#col-done {
+  background: rgba(22, 27, 34, 0.6);
+  border-style: dashed;
 }
 
 .col-header {
