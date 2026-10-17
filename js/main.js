@@ -2,6 +2,7 @@
 import { state } from "./state.js";
 import { loadKanban, renderKanban } from "./tabs/kanban/kanban.js";
 import { handleDrop } from "./tabs/kanban/drag.js";
+import { loadChannels, getActiveChannel, loadChannelMessages } from "./tabs/channels/channels.js";
 import { loadDocs } from "./tabs/docs/docs.js";
 import { loadDailies } from "./tabs/dailies/dailies.js";
 import { loadSprints } from "./tabs/sprints/sprints.js";
@@ -14,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderAuthBadge();
   setupNavigation();
   setupDragAndDrop();
+  setupChannelComposer();
   initModals(handleAuthChanged);
 
   // Cargar solapa inicial
@@ -25,6 +27,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // Refrescar datos en segundo plano sin interrumpir lo que el usuario esté escribiendo
       if (state.currentTab === "kanban") {
         loadKanban();
+      } else if (state.currentTab === "channels") {
+        loadChannelMessages(getActiveChannel());
       }
     }
   }, 60000);
@@ -39,6 +43,10 @@ function setupNavigation() {
 
   document.getElementById("btnNuevaAccion").addEventListener("click", () => {
     if (state.currentTab === "kanban") openNewIssueModal();
+    if (state.currentTab === "channels") {
+      const input = document.getElementById("channelInputBody");
+      if (input) input.focus();
+    }
     if (state.currentTab === "docs") openNewDocModal();
     if (state.currentTab === "dailies") openNewDailyModal();
     if (state.currentTab === "sprints") import("./modals.js").then(m => m.openNewMilestoneModal());
@@ -70,6 +78,72 @@ function setupNavigation() {
   }
 }
 
+function setupChannelComposer() {
+  const form = document.getElementById("channelPostForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("channelInputBody");
+    const message = input.value.trim();
+    if (!message) return;
+
+    if (!state.config.token) {
+      showToast("Conectá tu Token de GitHub para escribir en los canales.", "warning");
+      import("./modals.js").then(m => m.openAuthModal());
+      return;
+    }
+
+    const username = (state.user && state.user.username) ? state.user.username : "anonimo";
+    const author = `@${username}`;
+    const now = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const dateFormatted = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const fileTimestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    
+    const channelId = getActiveChannel();
+    const filename = `${fileTimestamp}-${username}.md`;
+    const path = `canales/${channelId}/${filename}`;
+
+    const mdContent = `**Autor:** ${author}
+**Fecha:** ${dateFormatted}
+
+---
+
+${message}
+`;
+
+    const btnSubmit = document.getElementById("btnSendChannelMessage");
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = "Enviando...";
+
+    try {
+      const b64Content = btoa(unescape(encodeURIComponent(mdContent)));
+      const bodyPayload = {
+        message: `chat(${channelId}): mensaje de ${author}`,
+        content: b64Content,
+        branch: "gh-pages"
+      };
+
+      const { githubRequest } = await import("./api.js");
+      await githubRequest(`/contents/${path}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyPayload)
+      });
+
+      input.value = "";
+      showToast("Mensaje publicado en #" + channelId, "success");
+      await loadChannelMessages(channelId);
+    } catch (err) {
+      showToast("Error al publicar mensaje: " + err.message, "error");
+    } finally {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = "💬 Publicar Mensaje";
+    }
+  });
+}
+
 export function switchTab(tabKey) {
   state.currentTab = tabKey;
 
@@ -86,6 +160,10 @@ export function switchTab(tabKey) {
     btnAccion.style.display = "inline-block";
     btnAccion.textContent = "➕ Nueva Tarea";
     loadKanban();
+  } else if (tabKey === "channels") {
+    btnAccion.style.display = "inline-block";
+    btnAccion.textContent = "✍️ Escribir Mensaje";
+    loadChannels();
   } else if (tabKey === "docs") {
     btnAccion.style.display = "inline-block";
     btnAccion.textContent = "➕ Nuevo Doc";

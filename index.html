@@ -37,6 +37,7 @@
   <nav class="sub-nav-bar">
     <div class="nav-tabs-container">
       <button class="nav-tab active" data-tab="kanban">📌 Tablero Kanban</button>
+      <button class="nav-tab" data-tab="channels">💬 Canales</button>
       <button class="nav-tab" data-tab="dailies">☕ Daily Scrum</button>
       <button class="nav-tab" data-tab="docs">📖 Docs / Wiki</button>
       <button class="nav-tab" data-tab="sprints">🎯 Sprints / Milestones</button>
@@ -92,6 +93,45 @@
         </div>
         <div class="cards-list" id="list-done"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- SOLAPA: CANALES / CHAT ESTILO SLACK (/canales) -->
+  <section id="tab-channels" class="tab-content">
+    <div class="docs-layout chat-layout">
+      <aside class="docs-sidebar chat-sidebar">
+        <div class="sidebar-head">
+          <h3>💬 Canales del Equipo</h3>
+        </div>
+        <ul id="channelsList" class="docs-tree channels-tree">
+          <!-- Canales renderizados dinámicamente -->
+        </ul>
+      </aside>
+
+      <main class="chat-main">
+        <div class="chat-header">
+          <div>
+            <h2 id="currentChannelTitle">#general</h2>
+            <p id="currentChannelDesc" class="chat-header-desc">Charla general del equipo y consultas rápidas</p>
+          </div>
+        </div>
+
+        <div id="channelMessagesFeed" class="chat-feed">
+          <p class="loading">Cargando mensajes del canal...</p>
+        </div>
+
+        <div class="chat-composer-container">
+          <form id="channelPostForm" class="chat-composer-form">
+            <textarea id="channelInputBody" rows="2" placeholder="Escribí un mensaje en este canal (soporta Markdown)..." required></textarea>
+            <div class="chat-composer-actions">
+              <span class="composer-hint">💡 Se guarda en <code>/canales/</code> como archivo individual Markdown.</span>
+              <button type="submit" class="btn primary small" id="btnSendChannelMessage">
+                💬 Publicar Mensaje
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
     </div>
   </section>
 
