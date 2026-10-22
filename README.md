@@ -1,96 +1,30 @@
 # 🚀 Daily Board (Project Hub)
 
-Tablero ágil y centro de coordinación nativo sobre **GitHub Issues, Pull Requests y Milestones**.
-100% estático, seguro y sin backend: corre íntegramente en el navegador del desarrollador mediante la API de GitHub y autenticación oficial Device Flow.
+Tablero ágil y centro de sincronización para equipos sobre **GitHub Issues, Pull Requests y Milestones**.
 
 ---
 
 ## ⚡ Instalación Mágica (One-Liner)
 
-Parate en la terminal dentro de tu proyecto (nuevo o existente) y ejecutá:
+Parate en la terminal dentro de tu proyecto y ejecutá:
 
 ```bash
 curl -sL https://raw.githubusercontent.com/jmrodev/daily-board/main/install.sh | bash
 ```
 
-El script se encarga de todo:
-1. Detecta tu repositorio.
-2. Inyecta `.github/workflows/board.yml`.
-3. Activa **GitHub Pages** en modo GitHub Actions automáticamente (si tenés `gh` CLI autenticado).
-4. Sube el commit a tu rama principal.
+El script se encarga de:
+1. Inyectar `.github/workflows/board.yml`.
+2. Activar GitHub Pages en modo Actions automáticamente.
+3. Desplegar tu tablero en `https://<org>.github.io/<repo>/`.
 
 ---
 
-## 🛠️ Instalación Manual (Alternativa)
-Creá el archivo `.github/workflows/board.yml` en tu proyecto:
+## 📖 Documentación y Wiki
 
-```yaml
-name: Deploy Project Board
+Las guías completas organizadas por capítulos están disponibles en la carpeta [`docs/`](docs/) y se renderizan automáticamente dentro de la solapa **Docs / Wiki** de tu tablero:
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
-jobs:
-  deploy-board:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Daily Board
-        uses: actions/checkout@v4
-        with:
-          repository: jmrodev/daily-board
-          ref: gh-pages
-          path: ./board-site
-
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./board-site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-```
-
-### 2. Habilitá GitHub Pages
-En la configuración de tu repositorio en GitHub:
-1. Andá a **Settings** → **Pages**.
-2. En **Build and deployment** > **Source**, seleccioná **GitHub Actions**.
-
-¡Listo! Tu tablero se desplegará en `https://<tu-usuario-u-org>.github.io/<tu-repo>/`.
-
----
-
-## 🔒 Privacidad y Seguridad
-
-- **Aislado e Independiente**: Corre bajo el dominio de GitHub Pages de tu propio proyecto.
-- **Sin servidores intermedios**: La comunicación es directa entre tu navegador y la API oficial de GitHub (`api.github.com`).
-- **Persistencia local**: Las sesiones y configuraciones se guardan aisladas en el `localStorage` de tu propio subdominio.
-- **Siempre actualizado**: Tu tablero se mantiene al día con las últimas mejoras de Daily Board en cada despliegue sin que tengas que actualizar código manualmente.
-
----
-
-## 🛠️ Funcionalidades Incluidas
-
-- **📌 Tablero Kanban**: Arrastre de issues sincronizado con labels (`status:todo`, `status:in-progress`, `status:blocked`, `status:done`).
-- **☕ Daily Scrum**: Registro de sincronización diaria estructurado directo en comentarios de GitHub.
-- **💬 Canales / Novedades**: Vista rápida de hilos y discusiones activas del equipo.
-- **📖 Docs / Wiki**: Renderizado en vivo de la documentación Markdown de tu carpeta `docs/`.
-- **🎯 Sprints / Milestones**: Seguimiento visual del avance de metas y entregas.
+- [Capítulo 01: Arquitectura y Privacidad](docs/01-arquitectura-y-privacidad.md)
+- [Capítulo 02: Instalación y Despliegue](docs/02-instalacion-y-despliegue.md)
+- [Capítulo 03: Tablero Kanban y Labels](docs/03-tablero-kanban-y-labels.md)
+- [Capítulo 04: Sincronización Daily Scrum](docs/04-sincronizacion-daily-scrum.md)
+- [Capítulo 05: Wiki y Gestión Documental](docs/05-wiki-y-gestion-documental.md)
