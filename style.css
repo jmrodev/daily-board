@@ -1649,5 +1649,32 @@ body:has(dialog[open]) {
   font-weight: 500;
 }
 
+/* Footer discreto de atribución y autoría */
+.app-attribution-footer {
+  text-align: center;
+  padding: 14px 12px 18px;
+  font-size: 0.72rem;
+  color: var(--text-muted, #8b949e);
+  letter-spacing: 0.2px;
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+}
+
+.app-attribution-footer:hover {
+  opacity: 1;
+}
+
+.app-attribution-footer a {
+  color: var(--text-muted, #8b949e);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+.app-attribution-footer a:hover {
+  color: var(--color-primary, #58a6ff);
+}
+
+
 
 
