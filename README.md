@@ -29,3 +29,16 @@ Las guías completas organizadas por capítulos están disponibles en la carpeta
 - [Capítulo 04: Sincronización Daily Scrum](docs/04-sincronizacion-daily-scrum.md)
 - [Capítulo 05: Wiki y Gestión Documental](docs/05-wiki-y-gestion-documental.md)
 - [Capítulo 06: Modelo de Seguridad, Datos y Tokens](docs/06-seguridad-datos-y-tokens.md)
+
+---
+
+## 📄 Licencia y Autoría
+
+Copyright (c) 2026 **Juan Marcelo Rodríguez** ([@jmrodev](https://github.com/jmrodev)). Todos los derechos de autor reservados.
+
+Este software es de código abierto y se puede compartir, redistribuir y utilizar libremente, bajo la condición obligatoria de **mantener visible la atribución y autoría original**:
+
+> *"Powered by Daily Board — Creado por Juan Marcelo Rodríguez (@jmrodev)"*
+
+Para los términos completos de uso y redistribución, consultá el archivo [`LICENSE`](LICENSE).
+
