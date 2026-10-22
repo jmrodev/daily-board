@@ -97,6 +97,16 @@ export function saveConfig(repoSlug, token, username, avatarUrl) {
   }
 }
 
+export function saveUserSession(token, username, avatarUrl) {
+  if (token !== undefined) state.config.token = token;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.config));
+
+  if (username) {
+    state.user = { username, avatarUrl };
+    localStorage.setItem(USER_KEY, JSON.stringify(state.user));
+  }
+}
+
 export function clearUserSession() {
   state.config.token = "";
   state.user = null;
