@@ -28,3 +28,4 @@ Las guías completas organizadas por capítulos están disponibles en la carpeta
 - [Capítulo 03: Tablero Kanban y Labels](docs/03-tablero-kanban-y-labels.md)
 - [Capítulo 04: Sincronización Daily Scrum](docs/04-sincronizacion-daily-scrum.md)
 - [Capítulo 05: Wiki y Gestión Documental](docs/05-wiki-y-gestion-documental.md)
+- [Capítulo 06: Modelo de Seguridad, Datos y Tokens](docs/06-seguridad-datos-y-tokens.md)
