@@ -7,13 +7,20 @@ function getStorageNamespace() {
   return "";
 }
 
-const STORAGE_KEY = `classroom_hub_config${getStorageNamespace()}`;
-const USER_KEY = `classroom_hub_user${getStorageNamespace()}`;
+const STORAGE_KEY = `project_hub_config${getStorageNamespace()}`;
+const USER_KEY = `project_hub_user${getStorageNamespace()}`;
 
 function detectCurrentRepoSlug() {
   if (typeof window !== "undefined" && window.location) {
+    // 1. Soporte prioritario vía query string: ?repo=owner/repo
+    const params = new URLSearchParams(window.location.search);
+    const repoParam = params.get("repo");
+    if (repoParam && repoParam.includes("/")) {
+      return repoParam.trim();
+    }
+
+    // 2. Si corre en username.github.io/reponame/
     const host = window.location.hostname;
-    // Si corre en username.github.io/reponame/
     if (host.endsWith(".github.io")) {
       const owner = host.split(".")[0];
       const repo = window.location.pathname.split("/").filter(Boolean)[0];
@@ -22,7 +29,7 @@ function detectCurrentRepoSlug() {
       }
     }
   }
-  return "jmrodev/daily-board";
+  return "";
 }
 
 const detectedSlug = detectCurrentRepoSlug();
