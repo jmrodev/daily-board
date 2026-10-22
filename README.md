@@ -5,11 +5,23 @@ Tablero ágil y centro de coordinación nativo sobre **GitHub Issues, Pull Reque
 
 ---
 
-## ⚡ Implementación Universal (En 1 paso)
+## ⚡ Instalación Mágica (One-Liner)
 
-No requiere templates, no ensucia tu repositorio con código de interfaz y funciona tanto para **proyectos nuevos** como para **proyectos existentes**.
+Parate en la terminal dentro de tu proyecto (nuevo o existente) y ejecutá:
 
-### 1. Agregá el workflow a tu repositorio
+```bash
+curl -sL https://raw.githubusercontent.com/jmrodev/daily-board/main/install.sh | bash
+```
+
+El script se encarga de todo:
+1. Detecta tu repositorio.
+2. Inyecta `.github/workflows/board.yml`.
+3. Activa **GitHub Pages** en modo GitHub Actions automáticamente (si tenés `gh` CLI autenticado).
+4. Sube el commit a tu rama principal.
+
+---
+
+## 🛠️ Instalación Manual (Alternativa)
 Creá el archivo `.github/workflows/board.yml` en tu proyecto:
 
 ```yaml
