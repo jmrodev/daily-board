@@ -45,6 +45,16 @@ if [[ "$REMOTE_URL" =~ github\.com[:/]([^/]+)/([^/.]+)(\.git)?$ ]]; then
 fi
 
 echo -e "📦 Repositorio detectado: ${GREEN}${REPO_SLUG:-"Git Local (sin remoto origin GitHub)"}${NC}"
+
+# Rama por defecto del repo destino. El workflow sólo dispara en las ramas que
+# lista `on.push.branches`: si queda `main` fijo, un repo con `master` (u otra)
+# nunca ejecuta el deploy y Pages queda vacío, sin ningún error visible.
+DEFAULT_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+if [ -z "$DEFAULT_BRANCH" ] && [ -n "$REPO_SLUG" ] && command -v gh >/dev/null 2>&1; then
+    DEFAULT_BRANCH=$(gh repo view "$REPO_SLUG" --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null || true)
+fi
+DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
+echo -e "🌿 Rama por defecto: ${GREEN}${DEFAULT_BRANCH}${NC}"
 echo ""
 read -p "¿Deseas instalar Daily Board en este proyecto? (s/N): " CONFIRM
 if [[ ! "$CONFIRM" =~ ^[sSyY]$ ]]; then
@@ -65,7 +75,7 @@ name: Deploy Project Board
 on:
   push:
     branches:
-      - main
+      - __DEFAULT_BRANCH__
   workflow_dispatch:
 
 permissions:
@@ -104,7 +114,19 @@ jobs:
         uses: actions/deploy-pages@v4
 EOF
 
-echo -e "✓ Creado: ${GREEN}$WORKFLOW_FILE${NC}"
+# Sustituir la rama por defecto sin romper el heredoc: expandirlo directamente
+# tocaría los `${{ ... }}` de las actions. Se escapan `&` y `|`, que tienen
+# significado especial en el reemplazo de sed.
+SAFE_BRANCH=$(printf '%s' "$DEFAULT_BRANCH" | sed 's/[&|]/\\&/g')
+TMP_WORKFLOW=$(mktemp)
+sed "s|__DEFAULT_BRANCH__|$SAFE_BRANCH|g" "$WORKFLOW_FILE" > "$TMP_WORKFLOW" && mv "$TMP_WORKFLOW" "$WORKFLOW_FILE"
+if grep -q "__DEFAULT_BRANCH__" "$WORKFLOW_FILE"; then
+    rm -f "$TMP_WORKFLOW"
+    echo -e "${RED}❌ No pude escribir la rama por defecto en el workflow.${NC}"
+    exit 1
+fi
+
+echo -e "✓ Creado: ${GREEN}$WORKFLOW_FILE${NC} (dispara en ${BOLD}${DEFAULT_BRANCH}${NC})"
 echo ""
 
 # 2. Configuración de GitHub Pages
@@ -116,19 +138,26 @@ if command -v gh >/dev/null 2>&1; then
     # Verificar si gh CLI está autenticado
     if gh auth status >/dev/null 2>&1 && [ -n "$REPO_SLUG" ]; then
         echo -e "⚙️  GitHub CLI detectado y autenticado. Configurando vía API..."
-        if gh api -X POST "repos/$REPO_SLUG/pages" -f build_type=workflow >/dev/null 2>&1; then
-            echo -e "✓ ${GREEN}GitHub Pages habilitado en modo GitHub Actions exitosamente.${NC}"
+        # POST crea el sitio; PUT lo actualiza si ya existía. Ninguno de los dos
+        # garantiza el resultado, así que después se lee el build_type real.
+        gh api -X POST "repos/$REPO_SLUG/pages" -f build_type=workflow >/dev/null 2>&1 \
+            || gh api -X PUT "repos/$REPO_SLUG/pages" -f build_type=workflow >/dev/null 2>&1 \
+            || true
+
+        # Verificar, no asumir: un PUT que devuelve 0 puede dejar el sitio en
+        # modo legacy, y el fallo aparecería recién en el deploy del workflow.
+        PAGES_BUILD_TYPE=$(gh api "repos/$REPO_SLUG/pages" --jq '.build_type' 2>/dev/null || true)
+        if [ "$PAGES_BUILD_TYPE" = "workflow" ]; then
+            echo -e "✓ ${GREEN}GitHub Pages en modo GitHub Actions.${NC}"
             PAGES_CONFIGURED=true
-        elif gh api "repos/$REPO_SLUG/pages" >/dev/null 2>&1; then
-            gh api -X PUT "repos/$REPO_SLUG/pages" -f build_type=workflow >/dev/null 2>&1 || true
-            echo -e "✓ ${GREEN}GitHub Pages actualizado a modo GitHub Actions.${NC}"
-            PAGES_CONFIGURED=true
+        else
+            echo -e "${YELLOW}⚠️  Pages quedó en modo '${PAGES_BUILD_TYPE:-desconocido}', no en GitHub Actions.${NC}"
         fi
     fi
 fi
 
 if [ "$PAGES_CONFIGURED" = false ]; then
-    echo -e "${YELLOW}ℹ️  No se pudo configurar GitHub Pages de forma automática (gh CLI no instalado o sin sesión).${NC}"
+    echo -e "${YELLOW}ℹ️  Pages no quedó en modo GitHub Actions automáticamente (gh no instalado, sin sesión, o el cambio no se aplicó).${NC}"
     echo ""
     echo -e "${BOLD}👉 PASOS MANUALES NECESARIOS EN GITHUB:${NC}"
     echo -e "   1. Abrí tu repositorio en el navegador:"
@@ -148,7 +177,8 @@ echo -e "${BLUE}▶ 3/3 Publicación de cambios...${NC}"
 read -p "¿Deseas commitear y pushear el archivo a GitHub ahora? (s/N): " PUSH_CONFIRM
 
 if [[ "$PUSH_CONFIRM" =~ ^[sSyY]$ ]]; then
-    CURRENT_BRANCH=$(git branch --show-current || echo "main")
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || true)
+    CURRENT_BRANCH=${CURRENT_BRANCH:-$DEFAULT_BRANCH}
     git add "$WORKFLOW_FILE"
     git commit -m "ci: deploy Daily Board to GitHub Pages"
     git push origin "$CURRENT_BRANCH"
@@ -172,7 +202,7 @@ else
     echo -e "Cuando quieras activarlo, ejecutá:"
     echo -e "   git add $WORKFLOW_FILE"
     echo -e "   git commit -m \"ci: deploy Daily Board to GitHub Pages\""
-    echo -e "   git push origin main"
+    echo -e "   git push origin $DEFAULT_BRANCH"
 fi
 
 echo ""
