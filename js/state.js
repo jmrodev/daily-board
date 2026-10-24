@@ -10,36 +10,41 @@ function getStorageNamespace() {
 const STORAGE_KEY = `project_hub_config${getStorageNamespace()}`;
 const USER_KEY = `project_hub_user${getStorageNamespace()}`;
 
-function detectCurrentRepoSlug() {
-  if (typeof window !== "undefined" && window.location) {
-    // 1. Soporte prioritario vía query string: ?repo=owner/repo
-    const params = new URLSearchParams(window.location.search);
-    const repoParam = params.get("repo");
-    if (repoParam && repoParam.includes("/")) {
-      return repoParam.trim();
-    }
+// Override explícito: ?repo=owner/repo
+function detectRepoFromQuery() {
+  if (typeof window === "undefined" || !window.location) return "";
+  const repoParam = new URLSearchParams(window.location.search).get("repo");
+  return repoParam && repoParam.includes("/") ? repoParam.trim() : "";
+}
 
-    // 2. Si corre en username.github.io/reponame/
-    const host = window.location.hostname;
-    if (host.endsWith(".github.io")) {
-      const owner = host.split(".")[0];
-      const repo = window.location.pathname.split("/").filter(Boolean)[0];
-      if (owner && repo) {
-        return `${owner}/${repo}`;
-      }
-    }
-  }
-  return "";
+// Sólo `*.github.io` permite derivar el slug de la URL. En un dominio propio
+// (CNAME) no hay forma de saberlo: se configura en el modal o con ?repo=.
+function detectRepoFromLocation() {
+  if (typeof window === "undefined" || !window.location) return "";
+  const host = window.location.hostname;
+  if (!host.endsWith(".github.io")) return "";
+  const owner = host.split(".")[0];
+  // Sitio de usuario u organización: la URL es https://owner.github.io/ y el
+  // repositorio real es owner/owner.github.io.
+  const repo = window.location.pathname.split("/").filter(Boolean)[0] || `${owner}.github.io`;
+  return owner && repo ? `${owner}/${repo}` : "";
+}
+
+function detectCurrentRepoSlug() {
+  return detectRepoFromQuery() || detectRepoFromLocation();
 }
 
 const detectedSlug = detectCurrentRepoSlug();
+const querySlug = detectRepoFromQuery();
 const savedConfig = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 
 export const state = {
   config: {
-    repoSlug: savedConfig.repoSlug || detectedSlug,
+    // Un ?repo= explícito gana sobre lo guardado: es el override documentado
+    // para dominios propios y para mirar otro repositorio sin pisar la config.
+    repoSlug: querySlug || savedConfig.repoSlug || detectedSlug,
     token: savedConfig.token || "",
-    isCustomRepo: Boolean(savedConfig.repoSlug)
+    isCustomRepo: Boolean(savedConfig.repoSlug || querySlug)
   },
   user: JSON.parse(localStorage.getItem(USER_KEY) || "null"),
   currentTab: "kanban",

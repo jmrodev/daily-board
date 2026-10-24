@@ -36,6 +36,15 @@ document.addEventListener("DOMContentLoaded", () => {
   setupChannelComposer();
   initModals(handleAuthChanged);
 
+  // Sin repositorio no hay nada que cargar: se avisa y se pide configurarlo, en
+  // vez de dejar la UI en "Cargando..." para siempre. Pasa con dominio propio
+  // (CNAME) o cuando el sitio no cuelga de GitHub Pages.
+  if (!state.config.repoSlug) {
+    showToast("No pude detectar el repositorio. Configuralo para ver el tablero.", "error", 8000);
+    import("./modals.js").then((m) => m.openAuthModal());
+    return;
+  }
+
   // Intentar resolver automáticamente si el repo actual es un fork para apuntar al upstream
   import("./state.js").then(async ({ autoResolveUpstreamRepo }) => {
     await autoResolveUpstreamRepo();
@@ -339,7 +348,7 @@ function setupDragAndDrop() {
 function renderAuthBadge() {
   const subtitle = document.getElementById("repoSubtitle");
   if (subtitle) {
-    subtitle.textContent = state.config.repoSlug;
+    subtitle.textContent = state.config.repoSlug || "Sin repositorio configurado";
     subtitle.title = "Click para cambiar de repositorio o conectar token";
     if (!subtitle.dataset.clickBound) {
       subtitle.dataset.clickBound = "true";
