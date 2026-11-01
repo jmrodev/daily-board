@@ -426,18 +426,34 @@ window.openIssueComments = async function (issueNumber) {
       return;
     }
 
-    timeline.innerHTML = comments.map(c => `
+    const issueBodyHtml = (issue && issue.body && issue.body.trim()) ? `
+      <div class="comment-bubble issue-description-bubble" style="border-left: 3px solid #388bfd; background: rgba(56, 139, 253, 0.05); margin-bottom: 16px;">
+        <div class="comment-bubble-head" style="display: flex; align-items: center; gap: 8px;">
+          <img src="${issue.user ? issue.user.avatar_url : ''}" width="20" height="20" style="border-radius: 50%;">
+          <strong>@${escapeHtml(issue.user ? issue.user.login : 'autor')}</strong>
+          <span style="background: #1f6feb; color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px;">Creador (Descripción del Issue)</span>
+          <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: auto;">${new Date(issue.created_at).toLocaleString()}</span>
+        </div>
+        <div class="comment-bubble-body markdown-body" style="margin-top: 8px;">
+          ${window.marked ? window.marked.parse(issue.body) : escapeHtml(issue.body)}
+        </div>
+      </div>
+    ` : "";
+
+    const commentsHtml = comments.map(c => `
       <div class="comment-bubble">
-        <div class="comment-bubble-head">
+        <div class="comment-bubble-head" style="display: flex; align-items: center; gap: 8px;">
           <img src="${c.user.avatar_url}" width="20" height="20" style="border-radius: 50%;">
           <strong>@${escapeHtml(c.user.login)}</strong>
-          <span style="color: var(--text-muted); font-size: 0.75rem;">${new Date(c.created_at).toLocaleString()}</span>
+          <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: auto;">${new Date(c.created_at).toLocaleString()}</span>
         </div>
-        <div class="comment-bubble-body markdown-body">
+        <div class="comment-bubble-body markdown-body" style="margin-top: 8px;">
           ${window.marked ? window.marked.parse(c.body) : escapeHtml(c.body)}
         </div>
       </div>
     `).join("");
+
+    timeline.innerHTML = issueBodyHtml + commentsHtml;
   } catch (err) {
     timeline.innerHTML = `<p style="color: var(--blocked);">Error al cargar comentarios: ${err.message}</p>`;
   }
