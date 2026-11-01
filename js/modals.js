@@ -413,7 +413,7 @@ window.openIssueComments = async function (issueNumber) {
 
   if (issue) {
     titleEl.textContent = `💬 Issue #${issue.number}: ${issue.title}`;
-    subEl.textContent = `Abierto por @${issue.user.login} · ${issue.comments} comentarios`;
+    subEl.textContent = `Abierto por @${issue.user.login} · ${issue.comments ?? 0} comentarios`;
   }
 
   timeline.innerHTML = `<p class="loading">Cargando comentarios desde GitHub...</p>`;

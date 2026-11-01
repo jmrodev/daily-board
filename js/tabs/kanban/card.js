@@ -96,7 +96,7 @@ export function createKanbanCard(issue, colKey) {
       </span>
       ${assignBtnHtml}
       <button class="btn-comments-trigger" title="Ver y agregar comentarios" onclick="event.stopPropagation(); window.openIssueComments(${issue.number})">
-        💬 ${issue.comments}
+        💬 ${issue.comments ?? 0}
       </button>
     </div>
     <div class="card-badges-row">
